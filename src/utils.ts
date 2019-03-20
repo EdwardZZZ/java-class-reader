@@ -155,10 +155,10 @@ export function parseName(name: any) {
         return replaceSlash(classResult[1]);
     }
 
-    const packageReg = /^([[]+)?(L[\w/<>;]+;)$/;
+    const packageReg = /^([*L[\w/<>;]+;)$/;
     const packageResult = name.match(packageReg);
     if (packageResult) {
-        return parseType(packageResult[2]);
+        return parseType(packageResult[1]);
     }
 
     const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
@@ -171,10 +171,10 @@ export function parseName(name: any) {
         return [inArr, outArr];
     }
 
-    const baseReg = /^([[]+)?([BCDFIJSZ])$/;
+    const baseReg = /^([*[BCDFIJSZ])$/;
     const baseResult = name.match(baseReg);
     if (baseResult) {
-        return parseType(baseResult[2]);
+        return parseType(baseResult[1]);
     }
 
     return replaceSlash(name);
