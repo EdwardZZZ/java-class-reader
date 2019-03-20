@@ -7,26 +7,8 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "TCP",
-            "runtimeExecutable": "ts-mocha",
-            "runtimeArgs": [
-                "${workspaceFolder}/test/tcp.spec.ts"
-            ],
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Mocha Tests",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": [
-                "-u",
-                "tdd",
-                "--timeout",
-                "999999",
-                "--colors",
-                "${workspaceFolder}/test"
-            ],
-            "internalConsoleOptions": "openOnSessionStart"
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/test/test.js"
         }
     ]
 }
