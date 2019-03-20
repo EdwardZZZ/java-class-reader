@@ -1,5 +1,5 @@
-import ReadClass from './ReadClass';
+import ClassReader from './ClassReader';
 
 export {
-    ReadClass,
+    ClassReader,
 };

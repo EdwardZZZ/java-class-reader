@@ -6,7 +6,7 @@ import { isEmpty, getAnnotations, getACC, InstructionMap } from './utils';
 
 const reader = new JavaClassFileReader();
 
-export default class ReadClass {
+export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
         this.classFile = reader.read(data);
     }
