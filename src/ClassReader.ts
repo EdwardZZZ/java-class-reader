@@ -182,7 +182,6 @@ export default class ClassReader {
                                     const typeName = getValueFromConstantPool(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    paramTypes[0] && console.log(methodName, variName, index, paramTypes[0].length);
                                     if (paramTypes[0] && index > 0 && index <= paramTypes[0].length) {
                                         parameters[variName] = typeName;
                                     }
