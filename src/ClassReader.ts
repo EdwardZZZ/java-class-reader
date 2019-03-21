@@ -236,7 +236,7 @@ export default class ClassReader {
 
                 const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
                 const attrValue = getValueFromConstantPool(constant_pool, constantvalue_index);
-                if (attrValue) {
+                if (attrValue.name) {
                     fieldInfo[attrName.name] = attrValue.name;
                 }
 

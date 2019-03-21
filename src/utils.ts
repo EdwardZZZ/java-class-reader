@@ -109,6 +109,7 @@ export function formatInOut(str: string) {
  */
 export function parseType(name: string) {
     if (isEmpty(name)) return name;
+    if (name === 'TT;') return 'java.lang.Object';
 
     if (BaseTypeKeys.indexOf(name) > -1) {
         return BaseType[name];
@@ -124,7 +125,7 @@ export function parseType(name: string) {
         return `${parseType(name.slice(1))}[]`;
     }
 
-    const genericReg = /^L([\w/;]+)<(L[\w/<>;]+;)+>;$/;
+    const genericReg = /^L([\w/;]+)<(L?[\w/<>;]+;)+>;$/;
     const genericResult = name.match(genericReg);
     if (genericResult) {
         const [, type1, type2] = genericResult;
