@@ -78,7 +78,7 @@ export function formatInOut(str: string) {
         endIndex = 1 + tempStrArr.findIndex((s, i) => (/[BCDFIJSZ;]/.test(s) && i >= endTempIndex));
         const sliceStr = tempStr.substr(startIndex, endIndex);
         if ((sliceStr.indexOf(';') > -1 && sliceStr.split('>').length === sliceStr.split('<').length)
-            || /^\[[BCDFIJSZ]$/.test(sliceStr)) {
+            || /^\[?[BCDFIJSZ]$/.test(sliceStr)) {
             resultArr.push(parseType(sliceStr));
             tempStr = tempStr.substr(endIndex);
             tempStrArr = tempStrArr.slice(endIndex);
