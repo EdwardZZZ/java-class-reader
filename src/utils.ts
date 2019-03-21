@@ -64,7 +64,6 @@ export function getACC(flag) {
  */
 export function formatInOut(str: string) {
     if (isEmpty(str) || str === 'V' || str === '') return null;
-    if (str.indexOf(';') === -1) return [parseType(str)];
 
     let tempStr = str;
     let tempStrArr = tempStr.split('');
@@ -99,10 +98,6 @@ export function formatInOut(str: string) {
         }
 
         if (endIndex >= tempStrArr.length) break;
-        // if (tempStrArr.indexOf(';') === -1) {
-        //     resultArr.push(parseType(tempStr.substr(startIndex)));
-        //     break;
-        // }
     }
 
     return resultArr;
