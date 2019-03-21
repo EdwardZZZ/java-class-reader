@@ -76,24 +76,33 @@ export function formatInOut(str: string) {
     let endTempIndex = 0;
     /* eslint-disable no-constant-condition */
     while (true) {
-        endIndex = 1 + tempStrArr.findIndex((s, i) => (s === ';' && i > endTempIndex));
-        const sliceStr = tempStr.substr(startIndex, endIndex);
-        if (sliceStr.split('>').length === sliceStr.split('<').length) {
-            resultArr.push(parseType(sliceStr));
-            tempStr = tempStr.substr(endIndex);
-            tempStrArr = tempStrArr.slice(endIndex);
+        if (/[BCDFIJSZ]/.test(tempStrArr[0])) {
+            resultArr.push(parseType(tempStrArr[0]));
+            tempStr = tempStr.substr(1);
+            tempStrArr = tempStrArr.slice(1);
             startIndex = 0;
             endIndex = 0;
             endTempIndex = 0;
         } else {
-            endTempIndex = endIndex;
+            endIndex = 1 + tempStrArr.findIndex((s, i) => (s === ';' && i > endTempIndex));
+            const sliceStr = tempStr.substr(startIndex, endIndex);
+            if (sliceStr.split('>').length === sliceStr.split('<').length) {
+                resultArr.push(parseType(sliceStr));
+                tempStr = tempStr.substr(endIndex);
+                tempStrArr = tempStrArr.slice(endIndex);
+                startIndex = 0;
+                endIndex = 0;
+                endTempIndex = 0;
+            } else {
+                endTempIndex = endIndex;
+            }
         }
 
         if (endIndex >= tempStrArr.length) break;
-        if (tempStrArr.indexOf(';') === -1) {
-            resultArr.push(parseType(tempStr.substr(startIndex)));
-            break;
-        }
+        // if (tempStrArr.indexOf(';') === -1) {
+        //     resultArr.push(parseType(tempStr.substr(startIndex)));
+        //     break;
+        // }
     }
 
     return resultArr;
@@ -103,7 +112,7 @@ export function formatInOut(str: string) {
  * 处理类型 ，例如 'Ljava/util/Map<Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;'
  * @param {*} name 类型值
  */
-export function parseType(name) {
+export function parseType(name: string) {
     if (isEmpty(name)) return name;
 
     if (BaseTypeKeys.indexOf(name) > -1) {
