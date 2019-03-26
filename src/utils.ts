@@ -42,6 +42,8 @@ const ACC = {
     0x0400: 'ACC_ABSTRACT',
     0x0800: 'ACC_STRICT',
     0x1000: 'ACC_SYNTHETIC',
+    0X2000: 'ACC_ANNOTATION',
+    0X4000: 'ACC_ENUM',
 };
 const ACCKeys = Object.keys(ACC).reverse();
 
@@ -177,9 +179,13 @@ export function parseName(name: any) {
     return replaceSlash(name);
 }
 
-export function bytesToValue(bytes) {
+export function bytesToValue(bytes: Buffer) {
     if (bytes instanceof Array) {
-        return String.fromCharCode(...bytes);
+        const buffer = Buffer.alloc(bytes.length);
+        bytes.forEach((b, i) => {
+            buffer[i] = b;
+        });
+        return buffer.toString();
     }
     return bytes;
 }

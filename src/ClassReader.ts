@@ -9,6 +9,12 @@ const reader = new JavaClassFileReader();
 export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
         this.classFile = reader.read(data);
+
+        // const { constant_pool_count, constant_pool } = this.classFile;
+        // for (let i = 1; i < constant_pool_count; i++) {
+        //     const result = getValueFromConstantPool(constant_pool, i);
+        //     console.log(i, JSON.stringify(result));
+        // }
     }
 
     classFile: JavaClassFile;
@@ -79,12 +85,19 @@ export default class ClassReader {
         } = this.classFile;
         attributes.forEach((attribute: any) => {
             const {
+                signature_index,
                 sourcefile_index,
                 attribute_name_index,
                 annotations,
             } = attribute;
+            const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
+
+            if (!isEmpty(signature_index)) {
+                const signature = getValueFromConstantPool(constant_pool, signature_index);
+                info[attrName.name] = signature.name;
+            }
+
             if (!isEmpty(sourcefile_index)) {
-                const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
                 const sourcefile = getValueFromConstantPool(constant_pool, sourcefile_index);
                 info[attrName.name] = sourcefile.name;
             }
@@ -137,7 +150,32 @@ export default class ClassReader {
                         const attrName = getValueFromConstantPool(constant_pool, attribute_name_index).name;
 
                         if (showCode && attrName === 'Code' && code) {
-                            methodInfo.codes = code.map(c => (InstructionMap.get(c)));
+                            methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
+                            if (methodName === '<clinit>') {
+                                const enumVal = [];
+                                let tempVal = [];
+                                let i = 0;
+                                while (i < code.length) {
+                                    const codeType = code[i];
+                                    if (codeType === 187) {
+                                        tempVal = [];
+                                    }
+                                    if (codeType === 179) {
+                                        i += 2;
+                                        tempVal.push(getValueFromConstantPool(constant_pool, code[i]));
+                                        tempVal.length > 0 && enumVal.push(tempVal);
+                                        tempVal = [];
+                                        continue;
+                                    }
+                                    if (codeType === 18) {
+                                        const result = getValueFromConstantPool(constant_pool, code[++i]).name;
+                                        tempVal.push(result);
+                                    } else {
+                                        i++;
+                                    }
+                                }
+                                methodInfo.enum = enumVal;
+                            }
                         }
 
                         if (attrName === 'Exceptions' && exception_index_table) {
@@ -182,7 +220,7 @@ export default class ClassReader {
                                     const typeName = getValueFromConstantPool(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    if (paramTypes[0] && index > 0 && index <= paramTypes[0].length) {
+                                    if (paramTypes[0] && index === Object.keys(parameters).length + 1) {
                                         parameters[variName] = typeName;
                                     }
                                 });
@@ -208,7 +246,7 @@ export default class ClassReader {
 
         const fieldsInfo = [];
 
-        fields.forEach((field) => {
+        for (const field of fields) {
             const {
                 access_flags,
                 descriptor_index,
@@ -226,7 +264,7 @@ export default class ClassReader {
 
             fieldInfo.ACC = getACC(access_flags);
 
-            attributes.forEach((attr) => {
+            for (const attr of attributes) {
                 const {
                     attribute_name_index,
                     constantvalue_index,
@@ -248,10 +286,10 @@ export default class ClassReader {
                 if (!isEmpty(annotations)) {
                     fieldInfo.annotations = getAnnotations(constant_pool, annotations);
                 }
-            });
+            }
 
             fieldsInfo.push(fieldInfo);
-        });
+        }
 
         return fieldsInfo;
     }
