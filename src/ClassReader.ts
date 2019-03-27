@@ -149,8 +149,8 @@ export default class ClassReader {
                     if (attribute_name_index) {
                         const attrName = getValueFromConstantPool(constant_pool, attribute_name_index).name;
 
-                        if (showCode && attrName === 'Code' && code) {
-                            methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
+                        if (attrName === 'Code' && code) {
+                            if (showCode) methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
                             if (methodName === '<clinit>') {
                                 const enumVal = [];
                                 let tempVal = [];
@@ -162,7 +162,7 @@ export default class ClassReader {
                                     }
                                     if (codeType === 179) {
                                         i += 2;
-                                        tempVal.push(getValueFromConstantPool(constant_pool, code[i]));
+                                        tempVal.unshift(getValueFromConstantPool(constant_pool, code[i]));
                                         tempVal.length > 0 && enumVal.push(tempVal);
                                         tempVal = [];
                                         continue;
