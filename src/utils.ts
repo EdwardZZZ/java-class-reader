@@ -30,20 +30,20 @@ const BaseType = {
 const BaseTypeKeys = Object.keys(BaseType);
 
 const ACC = {
-    0x0001: 'ACC_PUBLIC',
-    0x0002: 'ACC_PRIVATE',
-    0x0004: 'ACC_PROTECTED',
-    0x0008: 'ACC_STATIC',
-    0x0010: 'ACC_FINAL',
-    0x0020: 'ACC_SYNCHRONIZED',
-    0x0040: 'ACC_BRIDGE',
-    0x0080: 'ACC_VARARGS',
-    0x0100: 'ACC_NATIVE',
-    0x0400: 'ACC_ABSTRACT',
-    0x0800: 'ACC_STRICT',
-    0x1000: 'ACC_SYNTHETIC',
-    0X2000: 'ACC_ANNOTATION',
-    0X4000: 'ACC_ENUM',
+    0x0001: 'public',
+    0x0002: 'private',
+    0x0004: 'protected',
+    0x0008: 'static',
+    0x0010: 'final',
+    0x0020: 'synchronized',
+    0x0040: 'bridge',
+    0x0080: 'varargs',
+    0x0100: 'native',
+    0x0400: 'abstract',
+    0x0800: 'strict',
+    0x1000: 'synthetic',
+    0X2000: 'annotation',
+    0X4000: 'enum',
 };
 const ACCKeys = Object.keys(ACC).reverse();
 

@@ -20,13 +20,15 @@ export default class ClassReader {
     classFile: JavaClassFile;
 
     getAllInfo(options: any = {}) {
+        const superClass = this.getSuperClass();
+
         return {
             interfaceName: this.getInterfaceName(),
             fullyQualifiedName: this.getFullyQualifiedName(),
-            superClass: this.getSuperClass(),
+            superClass,
             dependClass: this.getDependClass(),
             classInfo: this.getClassInfo(),
-            methodsInfo: this.getMethodsInfo(options.showCode),
+            methodsInfo: this.getMethodsInfo({ showCode: options.showCode, isEnum: superClass === 'java.lang.Enum' }),
             fieldsInfo: this.getFieldsInfo(),
         };
     }
@@ -111,7 +113,10 @@ export default class ClassReader {
         return info;
     }
 
-    getMethodsInfo(showCode: boolean = false) {
+    getMethodsInfo({
+        showCode = false,
+        isEnum = false,
+    } = {}) {
         const {
             constant_pool,
             methods,
@@ -133,7 +138,13 @@ export default class ClassReader {
                 methodName,
             };
             const paramTypes = getValueFromConstantPool(constant_pool, descriptor_index).name;
-            methodInfo.paramTypes = paramTypes;
+            if (isEnum && methodName === '<init>') {
+                const [inParam, outParam] = paramTypes;
+                const [, , ...newInParam] = inParam;
+                methodInfo.paramTypes = [newInParam, outParam];
+            } else {
+                methodInfo.paramTypes = paramTypes;
+            }
             methodInfo.ACC = getACC(access_flags);
 
             if (!isEmpty(attributes)) {
@@ -207,7 +218,8 @@ export default class ClassReader {
                             if (local_variable_table) {
                                 const variable = {};
                                 const parameters = {};
-                                local_variable_table.forEach((attrVar) => {
+                                local_variable_table.sort((l1: any, l2: any) => l1.index > l2.index);
+                                for (const attrVar of local_variable_table) {
                                     const {
                                         index,
                                         name_index,
@@ -220,10 +232,15 @@ export default class ClassReader {
                                     const typeName = getValueFromConstantPool(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    if (paramTypes[0] && index === Object.keys(parameters).length + 1) {
+                                    // 倒数几位是参数？
+                                    const paramKeys = Object.keys(parameters);
+                                    let psn = 1;
+                                    if (methodInfo.ACC.indexOf('static') > -1) psn = 0;
+                                    if (isEnum) psn = 3;
+                                    if (paramTypes[0] && paramKeys.length < paramTypes[0].length && index === paramKeys.length + psn) {
                                         parameters[variName] = typeName;
                                     }
-                                });
+                                }
                                 methodInfo.variable = variable;
                                 methodInfo.parameters = parameters;
                             }
