@@ -174,7 +174,7 @@ export default class ClassReader {
                                     if (codeType === 179) {
                                         i += 2;
                                         tempVal.unshift(getValueFromConstantPool(constant_pool, code[i]));
-                                        tempVal.length > 0 && enumVal.push(tempVal);
+                                        tempVal.length > 1 && enumVal.push(tempVal);
                                         tempVal = [];
                                         continue;
                                     }
