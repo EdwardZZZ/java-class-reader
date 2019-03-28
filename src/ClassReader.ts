@@ -234,7 +234,7 @@ export default class ClassReader {
                                     // 倒数几位是参数？
                                     const paramKeys = Object.keys(parameters);
                                     let psn = 1;
-                                    if (methodInfo.ACC.indexOf('static') > -1) psn = 0;
+                                    if (methodInfo.ACC && methodInfo.ACC.indexOf('static') > -1) psn = 0;
                                     if (isEnum) psn = 3;
                                     if (paramTypes[0] && paramKeys.length < paramTypes[0].length && index === paramKeys.length + psn) {
                                         parameters[variName] = typeName;
