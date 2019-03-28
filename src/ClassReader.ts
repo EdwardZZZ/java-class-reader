@@ -181,9 +181,8 @@ export default class ClassReader {
                                     if (codeType === 18) {
                                         const result = getValueFromConstantPool(constant_pool, code[++i]).name;
                                         tempVal.push(result);
-                                    } else {
-                                        i++;
                                     }
+                                    i++;
                                 }
                                 methodInfo.enum = enumVal;
                             }
