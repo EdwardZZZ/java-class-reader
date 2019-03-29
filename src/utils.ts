@@ -123,7 +123,7 @@ export function parseType(name: string) {
     const genericResult = name.match(genericReg);
     if (genericResult) {
         const [, type1, type2] = genericResult;
-        if (type1 === 'java/util/Map') {
+        if (type1.slice(-3) === 'Map') {
             const [key, value] = formatInOut(type2);
             return `${replaceSlash(type1)}<${key},${value}>`;
         }
