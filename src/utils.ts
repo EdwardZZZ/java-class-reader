@@ -181,11 +181,7 @@ export function parseName(name: any) {
 
 export function bytesToValue(bytes: Buffer) {
     if (bytes instanceof Array) {
-        const buffer = Buffer.alloc(bytes.length);
-        bytes.forEach((b, i) => {
-            buffer[i] = b;
-        });
-        return buffer.toString();
+        return Buffer.from(bytes).toString();
     }
     return bytes;
 }
