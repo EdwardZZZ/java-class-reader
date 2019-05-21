@@ -47,7 +47,7 @@ const ACC = {
 };
 const ACCKeys = Object.keys(ACC).reverse();
 
-export function getACC(flag) {
+export function getACC(flag: number) {
     if (ACC[flag]) return [ACC[flag]];
 
     for (let i = 0; i < ACCKeys.length; i++) {
@@ -218,3 +218,60 @@ export function getAnnotations(constant_pool: any, annotations: any) {
 
     return annotationsResult;
 }
+
+
+/**
+ * 格式化出入参
+ * @param {*} str 参数
+ * retrun [kType, vType];
+ */
+export function formatKV(str: string) {
+    const strArr = str.split(',');
+    let kType = null;
+    let i = 0;
+    while (i < strArr.length) {
+        kType = strArr.slice(0, ++i).join('');
+        if (kType.split('>').length === kType.split('<').length) {
+            break;
+        }
+    }
+    const vType = strArr.slice(i).join(',');
+
+    return [formatType(kType), formatType(vType)];
+}
+
+const typeReg = /^([^<>]+)<(.+)>$/;
+/**
+ * 格式化Type
+ * @param str 格式
+ * return { name, shortName, typeId, childType? }
+ */
+export const formatType = (str: string) => {
+    const newStr: string = str.replace(/(^\s*)|(\s*$)/g, '');
+
+    if (newStr.slice(-2) === '[]') {
+        return {
+            name: 'java.lang.reflect.Array',
+            childType: [parseType(newStr.slice(0, -2))],
+        };
+    }
+
+    const typeRegResult = str.match(typeReg);
+    if (typeRegResult) {
+        const [, pType, cType] = typeRegResult;
+        if (pType === 'Map') {
+            return {
+                childType: formatKV(cType),
+            };
+        }
+
+        return {
+            name: pType,
+            childType: [parseType(cType)],
+        };
+    }
+
+    return {
+        name: str,
+    };
+};
