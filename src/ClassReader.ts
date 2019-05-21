@@ -174,7 +174,7 @@ export default class ClassReader {
                                     if (codeType === 179) {
                                         i += 2;
                                         tempVal.unshift(getValueFromConstantPool(constant_pool, code[i]));
-                                        tempVal.length > 1 && enumVal.push(tempVal);
+                                        if (tempVal.length > 1 && tempVal[0].class === tempVal[0].descriptor) enumVal.push(tempVal);
                                         tempVal = [];
                                         continue;
                                     }
