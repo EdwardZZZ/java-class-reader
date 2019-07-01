@@ -149,7 +149,8 @@ export function parseName(name: any) {
         return [inArr, outArr];
     }
 
-    const classReg = /^L([\w/;]+);$/;
+    // inner class TODO
+    const classReg = /^L([\w/;$]+);$/;
     const classResult = name.match(classReg);
     if (classResult) {
         return replaceSlash(classResult[1]);
