@@ -172,7 +172,7 @@ export function parseName(name: any) {
         return [inArr, outArr];
     }
 
-    const baseReg = /^([*[BCDFIJSZ])$/;
+    const baseReg = /^(\[*[BCDFIJSZ])$/;
     const baseResult = name.match(baseReg);
     if (baseResult) {
         return parseType(baseResult[1]);
