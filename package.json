@@ -29,7 +29,7 @@
     "eslint-watch": "^4.0.2",
     "expect": "^24.1.0",
     "mocha": "^5.2.0",
-    "parallelshell": "^3.0.2",
+    "p-shells": "^3.0.3",
     "ts-mocha": "^2.0.0",
     "typescript": "^3.2.2"
   },

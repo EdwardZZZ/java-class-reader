@@ -1,5 +1,5 @@
 import {
-    JavaClassFileReader, JavaClassFile,
+    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser,
 } from 'java-class-tools';
 import { getValueFromConstantPool } from './getValueFromConstantPool';
 import { isEmpty, getAnnotations, getACC, InstructionMap } from './utils';
@@ -124,6 +124,36 @@ export default class ClassReader {
 
         const methodsInfo = [];
 
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        let staticConstructMethod = null;
+        let constructMethod = null;
+        methods.forEach((method) => {
+            const methodName = getValueFromConstantPool(constant_pool, method.name_index).name;
+            if (methodName === '<clinit>') {
+                staticConstructMethod = method;
+            }
+            if (methodName === '<init>') {
+                constructMethod = method;
+            }
+        });
+
+        // 读取变量池 start
+        let readIndex = 0;
+        const readMap = new Map();
+        readMap.set(readIndex, 'EnumName');
+        readMap.set(++readIndex, 'EnumOrder');
+
+        if (constructMethod) {
+            const attr = constructMethod.attributes[0];
+            if (attr.attributes) {
+                attr.attributes[1].local_variable_table.forEach((a, idx) => {
+                    if (idx === 0) return;
+                    readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
+                });
+            }
+        }
+        // 读取变量池 end
+
         methods.forEach((method) => {
             const {
                 access_flags,
@@ -163,28 +193,46 @@ export default class ClassReader {
                         if (attrName === 'Code' && code) {
                             if (showCode) methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
                             if (methodName === '<clinit>') {
+                                const instructions = InstructionParser.fromBytecode(code);
+
+                                let readIndex = 0;
+                                let reading = false;
+                                let tempVal: any = {};
                                 const enumVal = [];
-                                let tempVal = [];
-                                let i = 0;
-                                while (i < code.length) {
-                                    const codeType = code[i];
-                                    if (codeType === 187) {
-                                        tempVal = [];
+
+                                for (const instruction of instructions) {
+                                    const { opcode, operands } = instruction;
+                                    const opName: string = InstructionMap.get(opcode);
+
+                                    if (opcode === Opcode.NEW) {
+                                        readIndex = 0;
+                                        reading = true;
+                                        tempVal = {};
+                                    } else if (reading && opcode === Opcode.DUP) {
+                                        // TODO
+                                    } else if (reading && opName.startsWith('iconst')) {
+                                        const name = readMap.get(readIndex++);
+                                        // console.log(name, opName, opName.replace('iconst_', ''));
+                                    } else if (reading && opcode === Opcode.LDC) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = getValueFromConstantPool(constant_pool, operands[0]).name;
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.SIPUSH) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = Buffer.from(instruction.operands).readInt16BE(0);
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.BIPUSH) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = Buffer.from(instruction.operands).readIntBE(0, 1);
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.INVOKESPECIAL) {
+                                        enumVal.push(tempVal);
+                                        reading = false;
                                     }
-                                    if (codeType === 179) {
-                                        i += 2;
-                                        tempVal.unshift(getValueFromConstantPool(constant_pool, code[i]));
-                                        if (tempVal.length > 1 && tempVal[0].class === tempVal[0].descriptor) enumVal.push(tempVal);
-                                        tempVal = [];
-                                        continue;
-                                    }
-                                    if (codeType === 18) {
-                                        const result = getValueFromConstantPool(constant_pool, code[++i]).name;
-                                        if (result !== undefined) tempVal.push(result);
-                                    }
-                                    i++;
                                 }
-                                methodInfo.enum = enumVal;
+
+                                methodInfo.enum = enumVal.map(val => Object.values(val));
+                                methodInfo.enumObj = enumVal;
                             }
                         }
 
