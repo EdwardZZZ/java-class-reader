@@ -204,30 +204,37 @@ export default class ClassReader {
                                     const { opcode, operands } = instruction;
                                     const opName: string = InstructionMap.get(opcode);
 
-                                    if (opcode === Opcode.NEW) {
-                                        readIndex = 0;
-                                        reading = true;
-                                        tempVal = {};
-                                    } else if (reading && opcode === Opcode.DUP) {
-                                        // TODO
-                                    } else if (reading && opName.startsWith('iconst')) {
-                                        const name = readMap.get(readIndex++);
-                                        // console.log(name, opName, opName.replace('iconst_', ''));
-                                    } else if (reading && opcode === Opcode.LDC) {
-                                        const name = readMap.get(readIndex++);
-                                        const result = getValueFromConstantPool(constant_pool, operands[0]).name;
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.SIPUSH) {
-                                        const name = readMap.get(readIndex++);
-                                        const result = Buffer.from(instruction.operands).readInt16BE(0);
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.BIPUSH) {
-                                        const name = readMap.get(readIndex++);
-                                        const result = Buffer.from(instruction.operands).readIntBE(0, 1);
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.INVOKESPECIAL) {
-                                        enumVal.push(tempVal);
-                                        reading = false;
+                                    try {
+                                        if (opcode === Opcode.NEW) {
+                                            readIndex = 0;
+                                            reading = true;
+                                            tempVal = {};
+                                        } else if (reading && opcode === Opcode.DUP) {
+                                            // TODO
+                                        } else if (reading && opName.startsWith('iconst')) {
+                                            const name = readMap.get(readIndex++);
+                                            const result = opName.replace('iconst_', '');
+                                            console.log(name, result);
+                                            tempVal[name] = result;
+                                        } else if (reading && opcode === Opcode.LDC) {
+                                            const name = readMap.get(readIndex++);
+                                            const result = getValueFromConstantPool(constant_pool, operands[0]).name;
+                                            tempVal[name] = result;
+                                        } else if (reading && opcode === Opcode.SIPUSH) {
+                                            const name = readMap.get(readIndex++);
+                                            const result = Buffer.from(instruction.operands).readInt16BE(0);
+                                            tempVal[name] = result;
+                                        } else if (reading && opcode === Opcode.BIPUSH) {
+                                            const name = readMap.get(readIndex++);
+                                            const result = Buffer.from(instruction.operands).readIntBE(0, 1);
+                                            tempVal[name] = result;
+                                        } else if (reading && opcode === Opcode.INVOKESPECIAL) {
+                                            delete tempVal.EnumOrder;
+                                            enumVal.push(tempVal);
+                                            reading = false;
+                                        }
+                                    } catch (err) {
+                                        console.log(err);
                                     }
                                 }
 
