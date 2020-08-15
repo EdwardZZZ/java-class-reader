@@ -20,9 +20,13 @@ export default class ClassReader {
 
     classFile: JavaClassFile;
 
-    getAllInfo(options: any = {}) {
+    enumInfos: any[] = [];
+
+    getAllInfo({ showCode }: any = {}) {
         const superClass = this.getSuperClass();
         const { fieldsInfo, enumFieldsInfo } = this.getFieldsInfo();
+        const isEnum = superClass === 'java.lang.Enum';
+        const methodsInfo = this.getMethodsInfo({ showCode, isEnum });
 
         return {
             interfaceName: this.getInterfaceName(),
@@ -30,9 +34,11 @@ export default class ClassReader {
             superClass,
             dependClass: this.getDependClass(),
             classInfo: this.getClassInfo(),
-            methodsInfo: this.getMethodsInfo({ showCode: options.showCode, isEnum: superClass === 'java.lang.Enum' }),
+            methodsInfo,
             fieldsInfo,
             enumFieldsInfo,
+            // After getMethodsInfo can get
+            enumInfos: this.enumInfos,
         };
     }
 
@@ -210,7 +216,7 @@ export default class ClassReader {
                                         // TODO
                                     } else if (reading && opName.startsWith('iconst')) {
                                         const name = readMap.get(readIndex++);
-                                        const result = opName.replace('iconst_', '');
+                                        const result = opName.replace('iconst_', '').replace('m', '-');
                                         // enum order
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.LDC) {
@@ -226,14 +232,13 @@ export default class ClassReader {
                                         const result = Operands.BIPUSH(instruction.operands);
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.INVOKESPECIAL) {
-                                        delete tempVal.EnumOrder;
                                         enumVal.push(tempVal);
                                         reading = false;
                                     }
                                 }
 
                                 methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
-                                methodInfo.enumObj = enumVal;
+                                this.enumInfos = enumVal;
                             }
                         }
 
