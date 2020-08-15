@@ -39,7 +39,7 @@ export default class ClassReader {
             interfaces,
         } = this.classFile;
 
-        return interfaces.map(itf => (getValueFromConstantPool(constant_pool, itf).name));
+        return interfaces.map((itf) => (getValueFromConstantPool(constant_pool, itf).name));
     }
 
     getFullyQualifiedName() {
@@ -238,7 +238,7 @@ export default class ClassReader {
                                     }
                                 }
 
-                                methodInfo.enum = enumVal.map(val => Object.values(val));
+                                methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
                                 methodInfo.enumObj = enumVal;
                             }
                         }

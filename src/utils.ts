@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getValueFromConstantPool } from './getValueFromConstantPool';
 
-export const isEmpty = (undef => (obj: any) => (obj === undef || obj === null))();
+export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null))();
 
 export function replaceSlash(str: any) {
     return str.replace(/\//g, '.');
@@ -15,7 +15,6 @@ export const InstructionMap = new Map();
         InstructionMap.set(+txtArr[i], txtArr[++i]);
     }
 })();
-
 
 const BaseType = {
     Z: 'boolean',
@@ -219,7 +218,6 @@ export function getAnnotations(constant_pool: any, annotations: any) {
 
     return annotationsResult;
 }
-
 
 /**
  * 格式化出入参
