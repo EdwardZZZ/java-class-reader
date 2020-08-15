@@ -1,8 +1,19 @@
+const fs = require('fs');
 const path = require('path');
 const { ClassReader } = require('../dist/index');
 
-const classPath = path.resolve(__dirname, 'Out.class');
+const testDir = path.resolve('./test');
 
-const result = new ClassReader(classPath).getFieldsInfo();
+const files = fs.readdirSync(testDir);
+console.log(files);
 
-console.log(JSON.stringify(result, null, 4));
+for (const file of files) {
+    if (file.slice('-6') !== '.class') continue;
+
+    const classPath = path.resolve(testDir, file);
+
+    const result = new ClassReader(classPath).getAllInfo();
+
+    console.log(JSON.stringify(result, null, 4));
+}
+
