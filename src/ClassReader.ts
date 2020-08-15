@@ -218,7 +218,7 @@ export default class ClassReader {
                                         const name = readMap.get(readIndex++);
                                         const result = opName.replace('iconst_', '').replace('m', '-');
                                         // enum order
-                                        tempVal[name] = result;
+                                        tempVal[name] = +result;
                                     } else if (reading && opcode === Opcode.LDC) {
                                         const name = readMap.get(readIndex++);
                                         const result = getValueFromConstantPool(constant_pool, operands[0]).name;
