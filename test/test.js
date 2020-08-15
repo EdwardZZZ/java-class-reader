@@ -5,7 +5,6 @@ const { ClassReader } = require('../dist/index');
 const testDir = path.resolve('./test');
 
 const files = fs.readdirSync(testDir);
-console.log(files);
 
 for (const file of files) {
     if (file.slice('-6') !== '.class') continue;
@@ -16,4 +15,10 @@ for (const file of files) {
 
     console.log(JSON.stringify(result, null, 4));
 }
+
+// const classPath = path.resolve(testDir, 'OrderTypeEnum.class');
+
+// const result = new ClassReader(classPath).getAllInfo();
+
+// console.log(JSON.stringify(result, null, 4));
 

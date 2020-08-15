@@ -3,6 +3,7 @@ import {
 } from 'java-class-tools';
 import { getValueFromConstantPool } from './getValueFromConstantPool';
 import { isEmpty, getAnnotations, getACC, InstructionMap } from './utils';
+import Operands from './Operands';
 
 const reader = new JavaClassFileReader();
 
@@ -21,6 +22,7 @@ export default class ClassReader {
 
     getAllInfo(options: any = {}) {
         const superClass = this.getSuperClass();
+        const { fieldsInfo, enumFieldsInfo } = this.getFieldsInfo();
 
         return {
             interfaceName: this.getInterfaceName(),
@@ -29,7 +31,8 @@ export default class ClassReader {
             dependClass: this.getDependClass(),
             classInfo: this.getClassInfo(),
             methodsInfo: this.getMethodsInfo({ showCode: options.showCode, isEnum: superClass === 'java.lang.Enum' }),
-            fieldsInfo: this.getFieldsInfo(),
+            fieldsInfo,
+            enumFieldsInfo,
         };
     }
 
@@ -123,36 +126,30 @@ export default class ClassReader {
         } = this.classFile;
 
         const methodsInfo = [];
-
+        const readMap = new Map();
         /* eslint-disable @typescript-eslint/no-unused-vars */
-        let staticConstructMethod = null;
-        let constructMethod = null;
         methods.forEach((method) => {
             const methodName = getValueFromConstantPool(constant_pool, method.name_index).name;
             if (methodName === '<clinit>') {
-                staticConstructMethod = method;
+                // staticConstructMethod = method;
             }
             if (methodName === '<init>') {
-                constructMethod = method;
+                // constructMethod = method;
+                // 读取变量池 start this.getFieldsInfo();
+                const attr: any = method.attributes[0];
+                let readIndex = 0;
+                readMap.set(readIndex, 'EnumName');
+                readMap.set(++readIndex, 'EnumOrder');
+
+                if (attr.attributes) {
+                    attr.attributes[1].local_variable_table.forEach((a, idx) => {
+                        if (idx === 0) return;
+                        readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
+                    });
+                }
+                // 读取变量池 end
             }
         });
-
-        // 读取变量池 start
-        let readIndex = 0;
-        const readMap = new Map();
-        readMap.set(readIndex, 'EnumName');
-        readMap.set(++readIndex, 'EnumOrder');
-
-        if (constructMethod) {
-            const attr = constructMethod.attributes[0];
-            if (attr.attributes) {
-                attr.attributes[1].local_variable_table.forEach((a, idx) => {
-                    if (idx === 0) return;
-                    readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
-                });
-            }
-        }
-        // 读取变量池 end
 
         methods.forEach((method) => {
             const {
@@ -190,6 +187,7 @@ export default class ClassReader {
                     if (attribute_name_index) {
                         const attrName = getValueFromConstantPool(constant_pool, attribute_name_index).name;
 
+                        // TODO 此处仅解析 Enum，其它方法及代码待解析
                         if (attrName === 'Code' && code) {
                             if (showCode) methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
                             if (methodName === '<clinit>') {
@@ -204,37 +202,33 @@ export default class ClassReader {
                                     const { opcode, operands } = instruction;
                                     const opName: string = InstructionMap.get(opcode);
 
-                                    try {
-                                        if (opcode === Opcode.NEW) {
-                                            readIndex = 0;
-                                            reading = true;
-                                            tempVal = {};
-                                        } else if (reading && opcode === Opcode.DUP) {
-                                            // TODO
-                                        } else if (reading && opName.startsWith('iconst')) {
-                                            const name = readMap.get(readIndex++);
-                                            const result = opName.replace('iconst_', '');
-                                            console.log(name, result);
-                                            tempVal[name] = result;
-                                        } else if (reading && opcode === Opcode.LDC) {
-                                            const name = readMap.get(readIndex++);
-                                            const result = getValueFromConstantPool(constant_pool, operands[0]).name;
-                                            tempVal[name] = result;
-                                        } else if (reading && opcode === Opcode.SIPUSH) {
-                                            const name = readMap.get(readIndex++);
-                                            const result = Buffer.from(instruction.operands).readInt16BE(0);
-                                            tempVal[name] = result;
-                                        } else if (reading && opcode === Opcode.BIPUSH) {
-                                            const name = readMap.get(readIndex++);
-                                            const result = Buffer.from(instruction.operands).readIntBE(0, 1);
-                                            tempVal[name] = result;
-                                        } else if (reading && opcode === Opcode.INVOKESPECIAL) {
-                                            delete tempVal.EnumOrder;
-                                            enumVal.push(tempVal);
-                                            reading = false;
-                                        }
-                                    } catch (err) {
-                                        console.log(err);
+                                    if (opcode === Opcode.NEW) {
+                                        readIndex = 0;
+                                        reading = true;
+                                        tempVal = {};
+                                    } else if (reading && opcode === Opcode.DUP) {
+                                        // TODO
+                                    } else if (reading && opName.startsWith('iconst')) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = opName.replace('iconst_', '');
+                                        // enum order
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.LDC) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = getValueFromConstantPool(constant_pool, operands[0]).name;
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.SIPUSH) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = Operands.SIPUSH(instruction.operands);
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.BIPUSH) {
+                                        const name = readMap.get(readIndex++);
+                                        const result = Operands.BIPUSH(instruction.operands);
+                                        tempVal[name] = result;
+                                    } else if (reading && opcode === Opcode.INVOKESPECIAL) {
+                                        delete tempVal.EnumOrder;
+                                        enumVal.push(tempVal);
+                                        reading = false;
                                     }
                                 }
 
@@ -280,8 +274,6 @@ export default class ClassReader {
                                         descriptor_index,
                                     } = attrVar;
 
-                                    // const result = getValueFromConstantPool(constant_pool, index);
-                                    // console.log(methodName, JSON.stringify(result));
                                     const variName = getValueFromConstantPool(constant_pool, name_index).name;
                                     const typeName = getValueFromConstantPool(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
@@ -316,6 +308,7 @@ export default class ClassReader {
         } = this.classFile;
 
         const fieldsInfo = [];
+        const enumFieldsInfo = [];
 
         for (const field of fields) {
             const {
@@ -328,6 +321,7 @@ export default class ClassReader {
             const fieldName = getValueFromConstantPool(constant_pool, name_index).name;
             const type = getValueFromConstantPool(constant_pool, descriptor_index).name;
 
+            if (this.getSuperClass() === 'java.lang.Enum' && fieldName === '$VALUES') continue;
             const fieldInfo: any = {
                 fieldName,
                 type,
@@ -359,9 +353,16 @@ export default class ClassReader {
                 }
             }
 
-            fieldsInfo.push(fieldInfo);
+            if (fieldInfo.type === this.getFullyQualifiedName()) {
+                enumFieldsInfo.push(fieldInfo);
+            } else {
+                fieldsInfo.push(fieldInfo);
+            }
         }
 
-        return fieldsInfo;
+        return {
+            fieldsInfo,
+            enumFieldsInfo,
+        };
     }
 }
