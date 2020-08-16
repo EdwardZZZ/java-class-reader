@@ -97,6 +97,11 @@ export function formatInOut(str: string) {
     return resultArr;
 }
 
+// $ inner class
+const packageReg = /^([*L[\w/$<>;]+;)$/;
+const classReg = /^L([\w/$;]+);$/;
+const typeReg = /^([^<>]+)<(.+)>$/;
+
 /**
  * 处理类型 ，例如 'Ljava/util/Map<Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;'
  * @param {*} name 类型值
@@ -109,7 +114,6 @@ export function parseType(name: string) {
         return BaseType[name];
     }
 
-    const classReg = /^L([\w/;]+);$/;
     const classResult = name.match(classReg);
     if (classResult) {
         return replaceSlash(classResult[1]);
@@ -119,7 +123,7 @@ export function parseType(name: string) {
         return `${parseType(name.slice(1))}[]`;
     }
 
-    const genericReg = /^L([\w/;]+)<(L?[\w/<>;]+;)+>;$/;
+    const genericReg = /^L([\w/;]+)<(L?[\w/<>$;]+;)+>;$/;
     const genericResult = name.match(genericReg);
     if (genericResult) {
         const [, type1, type2] = genericResult;
@@ -149,13 +153,11 @@ export function parseName(name: any) {
     }
 
     // inner class TODO
-    const classReg = /^L([\w/;$]+);$/;
     const classResult = name.match(classReg);
     if (classResult) {
         return replaceSlash(classResult[1]);
     }
 
-    const packageReg = /^([*L[\w/<>;]+;)$/;
     const packageResult = name.match(packageReg);
     if (packageResult) {
         return parseType(packageResult[1]);
@@ -239,7 +241,6 @@ export function formatKV(str: string) {
     return [formatType(kType), formatType(vType)];
 }
 
-const typeReg = /^([^<>]+)<(.+)>$/;
 /**
  * 格式化Type
  * @param str 格式
