@@ -1,60 +1,10 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { getValueFromConstantPool } from './getValueFromConstantPool';
+import { BaseTypeKeys, BaseType } from './Const';
 
 export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null))();
 
 export function replaceSlash(str: any) {
     return str.replace(/\//g, '.');
-}
-
-export const InstructionMap = new Map();
-(() => {
-    const txtArr = fs.readFileSync(path.resolve(__dirname, '../ins.txt')).toString().split('\n');
-    for (let i = 0; i < txtArr.length; i++) {
-        InstructionMap.set(+txtArr[i], txtArr[++i]);
-    }
-})();
-
-const BaseType = {
-    Z: 'boolean',
-    B: 'byte',
-    C: 'char',
-    D: 'double',
-    F: 'float',
-    I: 'int',
-    J: 'long',
-    S: 'short',
-};
-const BaseTypeKeys = Object.keys(BaseType);
-
-const ACC = {
-    0x0001: 'public',
-    0x0002: 'private',
-    0x0004: 'protected',
-    0x0008: 'static',
-    0x0010: 'final',
-    0x0020: 'synchronized',
-    0x0040: 'bridge',
-    0x0080: 'varargs',
-    0x0100: 'native',
-    0x0400: 'abstract',
-    0x0800: 'strict',
-    0x1000: 'synthetic',
-    0X2000: 'annotation',
-    0X4000: 'enum',
-};
-const ACCKeys = Object.keys(ACC).reverse();
-
-export function getACC(flag: number) {
-    if (ACC[flag]) return [ACC[flag]];
-
-    for (let i = 0; i < ACCKeys.length; i++) {
-        const temp: number = +ACCKeys[i];
-        if (flag > temp) {
-            return [...getACC(flag - temp), ACC[temp]];
-        }
-    }
 }
 
 // TODO split([A-Z])
@@ -98,9 +48,22 @@ export function formatInOut(str: string) {
 }
 
 // $ inner class
+/**
+ * [Lcom..service.business.dto.ResultDto$ResultCode;
+ * Ljava.lang.Enum<Lcom..service.business.dto.ResultDto$ResultCode;>;
+ */
+// baseType
+const baseReg = /^(\[*[BCDFIJSZ])$/;
+// package name
 const packageReg = /^([*L[\w/$<>;]+;)$/;
+// class name
 const classReg = /^L([\w/$;]+);$/;
-const typeReg = /^([^<>]+)<(.+)>$/;
+// generic
+const genericReg = /^L([\w/;]+)<(L?[\w/<>$;]+;)+>;$/;
+// input output
+const inoutReg = /^\(([[\w/<>;]+;?)?\)([[\w|/|<|>|;]+;?)$/;
+// generic  '<T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;)TT;'
+const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
 
 /**
  * 处理类型 ，例如 'Ljava/util/Map<Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;'
@@ -123,7 +86,6 @@ export function parseType(name: string) {
         return `${parseType(name.slice(1))}[]`;
     }
 
-    const genericReg = /^L([\w/;]+)<(L?[\w/<>$;]+;)+>;$/;
     const genericResult = name.match(genericReg);
     if (genericResult) {
         const [, type1, type2] = genericResult;
@@ -141,8 +103,6 @@ export function parseType(name: string) {
  */
 export function parseName(name: any) {
     if (isEmpty(name) || !isNaN(name)) return name;
-
-    const inoutReg = /^\(([[\w/<>;]+;?)?\)([[\w|/|<|>|;]+;?)$/;
 
     const inoutResult = name.match(inoutReg);
     if (inoutResult) {
@@ -163,7 +123,6 @@ export function parseName(name: any) {
         return parseType(packageResult[1]);
     }
 
-    const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
     const TResult = name.match(TReg);
     if (TResult) {
         const [, T, inStr, outStr] = TResult;
@@ -173,7 +132,6 @@ export function parseName(name: any) {
         return [inArr, outArr];
     }
 
-    const baseReg = /^(\[*[BCDFIJSZ])$/;
     const baseResult = name.match(baseReg);
     if (baseResult) {
         return parseType(baseResult[1]);
@@ -220,58 +178,3 @@ export function getAnnotations(constant_pool: any, annotations: any) {
 
     return annotationsResult;
 }
-
-/**
- * 格式化出入参
- * @param {*} str 参数
- * retrun [kType, vType];
- */
-export function formatKV(str: string) {
-    const strArr = str.split(',');
-    let kType = null;
-    let i = 0;
-    while (i < strArr.length) {
-        kType = strArr.slice(0, ++i).join('');
-        if (kType.split('>').length === kType.split('<').length) {
-            break;
-        }
-    }
-    const vType = strArr.slice(i).join(',');
-
-    return [formatType(kType), formatType(vType)];
-}
-
-/**
- * 格式化Type
- * @param str 格式
- * return { name, shortName, typeId, childType? }
- */
-export const formatType = (str: string) => {
-    const newStr: string = str.replace(/(^\s*)|(\s*$)/g, '');
-
-    if (newStr.slice(-2) === '[]') {
-        return {
-            name: 'java.lang.reflect.Array',
-            childType: [parseType(newStr.slice(0, -2))],
-        };
-    }
-
-    const typeRegResult = str.match(typeReg);
-    if (typeRegResult) {
-        const [, pType, cType] = typeRegResult;
-        if (pType === 'Map') {
-            return {
-                childType: formatKV(cType),
-            };
-        }
-
-        return {
-            name: pType,
-            childType: [parseType(cType)],
-        };
-    }
-
-    return {
-        name: str,
-    };
-};

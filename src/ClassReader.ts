@@ -1,8 +1,10 @@
 import {
     JavaClassFileReader, JavaClassFile, Opcode, InstructionParser,
 } from 'java-class-tools';
+
 import { getValueFromConstantPool } from './getValueFromConstantPool';
-import { isEmpty, getAnnotations, getACC, InstructionMap } from './utils';
+import { isEmpty, getAnnotations } from './utils';
+import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 
 const reader = new JavaClassFileReader();
