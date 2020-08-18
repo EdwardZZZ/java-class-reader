@@ -47,7 +47,6 @@ export function formatInOut(str: string) {
     return resultArr;
 }
 
-// $ inner class
 /**
  * [Lcom..service.business.dto.ResultDto$ResultCode;
  * Ljava.lang.Enum<Lcom..service.business.dto.ResultDto$ResultCode;>;
@@ -142,7 +141,7 @@ export function parseName(name: any) {
 
 export function bytesToValue(bytes: Buffer) {
     if (bytes instanceof Array) {
-        let strArr = [];
+        const strArr = [];
         for (let i = 0; i < bytes.length; i++) {
             const binary = bytes[i].toString(2);
             const r = binary.match(/^(1+)0/);
