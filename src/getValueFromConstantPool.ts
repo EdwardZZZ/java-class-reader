@@ -1,5 +1,3 @@
-import * as Long from 'long';
-
 import { isEmpty, bytesToValue, parseName } from './utils';
 
 // enum ConstantType {
@@ -36,7 +34,13 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 5:
         case 6:
         {
-            const value = new Long(nameIndex.low_bytes, nameIndex.high_bytes);
+            let value = 0n;
+
+            /* global BigInt */
+            [...nameIndex.high_bytes, ...nameIndex.low_bytes].reduceRight((prev, curr) => {
+                value += prev * BigInt(curr);
+                return prev * 256n;
+            }, 1n);
             return {
                 name: value.toString(),
             };
