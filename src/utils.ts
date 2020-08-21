@@ -139,13 +139,6 @@ export function parseName(name: any) {
     return replaceSlash(name);
 }
 
-export function bytesToValue(bytes: Buffer) {
-    if (bytes instanceof Array) {
-        return Buffer.from(bytes).toString();
-    }
-    return bytes;
-}
-
 export function getAnnotations(constant_pool: any, annotations: any) {
     /**
      * 非流程方法，此方法在类的注解、方法的注解、属性的注解获取中有用到

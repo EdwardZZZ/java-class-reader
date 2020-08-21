@@ -1,4 +1,5 @@
-import { isEmpty, bytesToValue, parseName } from './utils';
+import { isEmpty, parseName } from './utils';
+import { bytesToValue, readBigInt64BE, int2UintBytes } from './bytes';
 
 // enum ConstantType {
 //     UTF8 = 1,
@@ -34,11 +35,8 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 5:
         case 6:
         {
-            const buff = Buffer.alloc(8);
-            buff.writeInt32BE(nameIndex.high_bytes);
-            buff.writeInt32BE(nameIndex.low_bytes, 4);
             return {
-                name: buff.readBigInt64BE(),
+                name: readBigInt64BE(int2UintBytes(nameIndex.high_bytes).concat(int2UintBytes(nameIndex.low_bytes))).toString(),
             };
         }
         case 7:
