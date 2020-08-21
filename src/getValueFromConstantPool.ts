@@ -34,15 +34,11 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 5:
         case 6:
         {
-            let value = 0n;
-
-            /* global BigInt */
-            [...nameIndex.high_bytes, ...nameIndex.low_bytes].reduceRight((prev, curr) => {
-                value += prev * BigInt(curr);
-                return prev * 256n;
-            }, 1n);
+            const buff = Buffer.alloc(8);
+            buff.writeInt32BE(nameIndex.high_bytes);
+            buff.writeInt32BE(nameIndex.low_bytes, 4);
             return {
-                name: value.toString(),
+                name: buff.readBigInt64BE(),
             };
         }
         case 7:

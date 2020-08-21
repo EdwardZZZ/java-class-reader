@@ -141,22 +141,7 @@ export function parseName(name: any) {
 
 export function bytesToValue(bytes: Buffer) {
     if (bytes instanceof Array) {
-        const strArr = [];
-        for (let i = 0; i < bytes.length; i++) {
-            const binary = bytes[i].toString(2);
-            const r = binary.match(/^(1+)0/);
-            if (r && binary.length === 8) {
-                let len = r[1].length;
-                let code = bytes[i] & (len === 4 ? 0xf : 0x1f);
-                while (--len) {
-                    code = (code << 6) | (bytes[++i] & 0x3f);
-                }
-                strArr.push(String.fromCodePoint(code));
-            } else {
-                strArr.push(String.fromCharCode(bytes[i]));
-            }
-        }
-        return strArr.join('');
+        return Buffer.from(bytes).toString();
     }
     return bytes;
 }
