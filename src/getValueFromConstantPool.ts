@@ -1,5 +1,5 @@
 import { isEmpty, parseName } from './utils';
-import { bytes2String, readBigInt64BE, int2UintBytes } from './bytes';
+import { bytes2String } from './bytes';
 
 // enum ConstantType {
 //     UTF8 = 1,
@@ -36,7 +36,8 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 6:
         {
             return {
-                name: readBigInt64BE(int2UintBytes(nameIndex.high_bytes).concat(int2UintBytes(nameIndex.low_bytes))).toString(),
+                /* global BigInt */
+                name: (BigInt(nameIndex.high_bytes) << 32n + BigInt(nameIndex.low_bytes)).toString(),
             };
         }
         case 7:
