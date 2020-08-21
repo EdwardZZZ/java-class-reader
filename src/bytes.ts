@@ -24,7 +24,7 @@ export function readBigInt64BE(bytes: number[], offset = 0) {
         + BigInt(readInt32BE(bytes, offset + 4, true));
 }
 
-export function bytesToValue(bytes: Buffer) {
+export function bytes2String(bytes: Buffer) {
     if (bytes instanceof Array) {
         const strArr = [];
         for (let i = 0; i < bytes.length; i++) {

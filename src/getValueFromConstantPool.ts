@@ -1,5 +1,5 @@
 import { isEmpty, parseName } from './utils';
-import { bytesToValue, readBigInt64BE, int2UintBytes } from './bytes';
+import { bytes2String, readBigInt64BE, int2UintBytes } from './bytes';
 
 // enum ConstantType {
 //     UTF8 = 1,
@@ -27,7 +27,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 3:
         case 4:
         {
-            const value = bytesToValue(nameIndex.bytes);
+            const value = bytes2String(nameIndex.bytes);
             return {
                 name: parseName(value),
             };
@@ -43,7 +43,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         case 8:
         {
             const value = constant_pool[nameIndex.name_index | nameIndex.string_index];
-            const valueChild = bytesToValue(value.bytes);
+            const valueChild = bytes2String(value.bytes);
             return {
                 name: parseName(valueChild),
             };
@@ -55,13 +55,13 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
             const classIndex = constant_pool[nameIndex.class_index];
 
             const classChildIndex = constant_pool[classIndex.name_index];
-            const clazz = bytesToValue(classChildIndex.bytes);
+            const clazz = bytes2String(classChildIndex.bytes);
 
             const nameAndTypeIndex = constant_pool[nameIndex.name_and_type_index];
             const nameAndTypeChildIndex = constant_pool[nameAndTypeIndex.name_index];
-            const name = bytesToValue(nameAndTypeChildIndex.bytes);
+            const name = bytes2String(nameAndTypeChildIndex.bytes);
             const descriptorIndex = constant_pool[nameAndTypeIndex.descriptor_index];
-            const descriptor = bytesToValue(descriptorIndex.bytes);
+            const descriptor = bytes2String(descriptorIndex.bytes);
 
             return {
                 class: parseName(clazz),
@@ -77,9 +77,9 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
             } = nameIndex;
 
             const nameIndex1 = constant_pool[name_index];
-            const name = bytesToValue(nameIndex1.bytes);
+            const name = bytes2String(nameIndex1.bytes);
             const descriptorIndex = constant_pool[descriptor_index];
-            const descriptor = bytesToValue(descriptorIndex.bytes);
+            const descriptor = bytes2String(descriptorIndex.bytes);
 
             return {
                 name: parseName(name),
@@ -98,7 +98,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         {
             const nameAndTypeIndex = constant_pool[nameIndex.name_and_type_index];
             const nameAndTypeChildIndex = constant_pool[nameAndTypeIndex.name_index];
-            const name = bytesToValue(nameAndTypeChildIndex.bytes);
+            const name = bytes2String(nameAndTypeChildIndex.bytes);
 
             return {
                 name: parseName(name),
@@ -106,7 +106,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         }
         default:
         {
-            const value = bytesToValue(nameIndex.bytes);
+            const value = bytes2String(nameIndex.bytes);
             return {
                 name: parseName(value),
             };
