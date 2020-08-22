@@ -37,7 +37,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
         {
             return {
                 /* global BigInt */
-                name: (BigInt(nameIndex.high_bytes) << 32n + BigInt(nameIndex.low_bytes)).toString(),
+                name: ((BigInt(nameIndex.high_bytes) << 32n) + BigInt(nameIndex.low_bytes)).toString(),
             };
         }
         case 7:
