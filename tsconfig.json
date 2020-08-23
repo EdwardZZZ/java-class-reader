@@ -10,8 +10,7 @@
         "watch":false,
         "alwaysStrict": true,
         "removeComments": true,
-        "preserveWatchOutput": true,
-        "types" : ["node"]
+        "preserveWatchOutput": true
     },
     "include":[
         "./src/**/*"

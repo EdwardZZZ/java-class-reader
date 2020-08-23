@@ -197,10 +197,10 @@ export default class ClassReader {
 
                         // TODO 此处仅解析 Enum，其它方法及代码待解析
                         if (attrName === 'Code' && code) {
-                            if (showCode) methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
-                            if (methodName === '<clinit>') {
-                                const instructions = InstructionParser.fromBytecode(code);
+                            const instructions = InstructionParser.fromBytecode(code);
 
+                            if (showCode) methodInfo.codes = instructions;
+                            if (methodName === '<clinit>') {
                                 let readIndex = 0;
                                 let reading = false;
                                 let tempVal: any = {};

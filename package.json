@@ -1,6 +1,6 @@
 {
   "name": "java-class-reader",
-  "description": "java-class-reader",
+  "description": "Read and write java class files in node or browser base on java-class-tools",
   "version": "0.3.0",
   "main": "dist/index.js",
   "files": [

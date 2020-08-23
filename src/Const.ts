@@ -1,13 +1,12 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { Opcode } from 'java-class-tools';
 
 export const InstructionMap = new Map();
-(() => {
-    const txtArr = fs.readFileSync(path.resolve(__dirname, '../ins.txt')).toString().split('\n');
-    for (let i = 0; i < txtArr.length; i++) {
-        InstructionMap.set(+txtArr[i], txtArr[++i]);
+
+for (const key in Opcode) {
+    if (Object.prototype.hasOwnProperty.call(Opcode, key)) {
+        InstructionMap.set(Opcode[key], key);
     }
-})();
+}
 
 export const BaseType = {
     Z: 'boolean',
