@@ -2,7 +2,7 @@
     "compilerOptions": {
         "module": "commonjs",
         "allowJs": true,
-        "target": "es2017",
+        "target": "es2020",
         "noImplicitAny": false,
         "sourceMap": false,
         "rootDir":"./src",
@@ -10,8 +10,7 @@
         "watch":false,
         "alwaysStrict": true,
         "removeComments": true,
-        "preserveWatchOutput": true,
-        "types" : ["node"]
+        "preserveWatchOutput": true
     },
     "include":[
         "./src/**/*"
