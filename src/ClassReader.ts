@@ -149,7 +149,7 @@ export default class ClassReader {
                 readMap.set(readIndex, 'EnumName');
                 readMap.set(++readIndex, 'EnumOrder');
 
-                if (attr.attributes) {
+                if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
                     attr.attributes[1].local_variable_table.forEach((a, idx) => {
                         if (idx === 0) return;
                         readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
