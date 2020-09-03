@@ -208,7 +208,7 @@ export default class ClassReader {
 
                                 for (const instruction of instructions) {
                                     const { opcode, operands } = instruction;
-                                    const opName: string = InstructionMap.get(opcode);
+                                    const opName: string = InstructionMap.get(opcode).toLowerCase();
 
                                     if (opcode === Opcode.NEW) {
                                         readIndex = 0;
