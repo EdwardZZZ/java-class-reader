@@ -1,8 +1,10 @@
 import {
     JavaClassFileReader, JavaClassFile, Opcode, InstructionParser,
 } from 'java-class-tools';
+
 import { getValueFromConstantPool } from './getValueFromConstantPool';
-import { isEmpty, getAnnotations, getACC, InstructionMap } from './utils';
+import { isEmpty, getAnnotations } from './utils';
+import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 
 const reader = new JavaClassFileReader();
@@ -147,7 +149,7 @@ export default class ClassReader {
                 readMap.set(readIndex, 'EnumName');
                 readMap.set(++readIndex, 'EnumOrder');
 
-                if (attr.attributes) {
+                if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
                     attr.attributes[1].local_variable_table.forEach((a, idx) => {
                         if (idx === 0) return;
                         readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
@@ -195,10 +197,10 @@ export default class ClassReader {
 
                         // TODO 此处仅解析 Enum，其它方法及代码待解析
                         if (attrName === 'Code' && code) {
-                            if (showCode) methodInfo.codes = code.map((c: any) => (InstructionMap.get(c)));
-                            if (methodName === '<clinit>') {
-                                const instructions = InstructionParser.fromBytecode(code);
+                            const instructions = InstructionParser.fromBytecode(code);
 
+                            if (showCode) methodInfo.codes = instructions;
+                            if (methodName === '<clinit>') {
                                 let readIndex = 0;
                                 let reading = false;
                                 let tempVal: any = {};
@@ -206,7 +208,7 @@ export default class ClassReader {
 
                                 for (const instruction of instructions) {
                                     const { opcode, operands } = instruction;
-                                    const opName: string = InstructionMap.get(opcode);
+                                    const opName: string = InstructionMap.get(opcode).toLowerCase();
 
                                     if (opcode === Opcode.NEW) {
                                         readIndex = 0;
