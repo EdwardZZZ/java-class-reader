@@ -12,35 +12,44 @@ const reader = new JavaClassFileReader();
 export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
         this.classFile = reader.read(data);
-
-        // const { constant_pool_count, constant_pool } = this.classFile;
-        // for (let i = 1; i < constant_pool_count; i++) {
-        //     const result = getValueFromConstantPool(constant_pool, i);
-        //     console.log(i, JSON.stringify(result));
-        // }
+        this.superClass = this.getSuperClass();
+        this.dependClass = this.getDependClass();
+        this.interfaceName = this.getInterfaceName();
+        this.fullyQualifiedName = this.getFullyQualifiedName();
+        this.classInfo = this.getClassInfo();
     }
 
     classFile: JavaClassFile;
 
+    superClass: string;
+
+    dependClass: string[];
+
+    interfaceName: string[];
+
+    fullyQualifiedName: string;
+
+    classInfo: any;
+
     enumInfos: any[] = [];
 
     getAllInfo({ showCode }: any = {}) {
-        const superClass = this.getSuperClass();
+        const { superClass, dependClass, interfaceName, fullyQualifiedName, classInfo } = this;
+
         const { fieldsInfo, enumFieldsInfo } = this.getFieldsInfo();
-        const isEnum = superClass === 'java.lang.Enum';
-        const methodsInfo = this.getMethodsInfo({ showCode, isEnum });
+        const methodsInfo = this.getMethodsInfo({ showCode });
+        const { enumInfos } = this; // after getMethodsInfo
 
         return {
-            interfaceName: this.getInterfaceName(),
-            fullyQualifiedName: this.getFullyQualifiedName(),
             superClass,
-            dependClass: this.getDependClass(),
-            classInfo: this.getClassInfo(),
+            dependClass,
+            interfaceName,
+            fullyQualifiedName,
+            classInfo,
             methodsInfo,
             fieldsInfo,
             enumFieldsInfo,
-            // After getMethodsInfo can get
-            enumInfos: this.enumInfos,
+            enumInfos,
         };
     }
 
@@ -126,38 +135,15 @@ export default class ClassReader {
 
     getMethodsInfo({
         showCode = false,
-        isEnum = false,
     } = {}) {
         const {
             constant_pool,
             methods,
         } = this.classFile;
+        const isEnum = this.superClass === 'java.lang.Enum';
 
         const methodsInfo = [];
         const readMap = new Map();
-        /* eslint-disable @typescript-eslint/no-unused-vars */
-        methods.forEach((method) => {
-            const methodName = getValueFromConstantPool(constant_pool, method.name_index).name;
-            if (methodName === '<clinit>') {
-                // staticConstructMethod = method;
-            }
-            if (methodName === '<init>') {
-                // constructMethod = method;
-                // 读取变量池 start this.getFieldsInfo();
-                const attr: any = method.attributes[0];
-                let readIndex = 0;
-                readMap.set(readIndex, 'EnumName');
-                readMap.set(++readIndex, 'EnumOrder');
-
-                if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
-                    attr.attributes[1].local_variable_table.forEach((a, idx) => {
-                        if (idx === 0) return;
-                        readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
-                    });
-                }
-                // 读取变量池 end
-            }
-        });
 
         methods.forEach((method) => {
             const {
@@ -173,13 +159,34 @@ export default class ClassReader {
                 methodName,
             };
             const paramTypes = getValueFromConstantPool(constant_pool, descriptor_index).name;
-            if (isEnum && methodName === '<init>') {
-                const [inParam, outParam] = paramTypes;
-                const [, , ...newInParam] = inParam;
-                methodInfo.paramTypes = [newInParam, outParam];
-            } else {
-                methodInfo.paramTypes = paramTypes;
+            methodInfo.paramTypes = paramTypes;
+
+            if (methodName === '<init>') {
+                // 读取变量池 start this.getFieldsInfo();
+                const attr: any = method.attributes[0];
+                let readIndex = 0;
+                readMap.set(readIndex, 'EnumName');
+                readMap.set(++readIndex, 'EnumOrder');
+
+                if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
+                    attr.attributes[1].local_variable_table.forEach((a, idx) => {
+                        if (idx === 0) return;
+                        readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
+                    });
+                }
+                // 读取变量池 end
+
+                if (isEnum) {
+                    const [inParam, outParam] = paramTypes;
+                    const [, , ...newInParam] = inParam;
+                    methodInfo.paramTypes = [newInParam, outParam];
+                }
             }
+
+            if (methodName === '<clinit>') {
+                // staticConstructMethod = method;
+            }
+
             methodInfo.ACC = getACC(access_flags);
 
             if (!isEmpty(attributes)) {
@@ -239,6 +246,7 @@ export default class ClassReader {
                                     }
                                 }
 
+                                /* eslint-disable @typescript-eslint/no-unused-vars */
                                 methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
                                 this.enumInfos = enumVal;
                             }
