@@ -162,21 +162,21 @@ export default class ClassReader {
             methodInfo.paramTypes = paramTypes;
 
             if (methodName === '<init>') {
-                // 读取变量池 start this.getFieldsInfo();
-                const attr: any = method.attributes[0];
-                let readIndex = 0;
-                readMap.set(readIndex, 'EnumName');
-                readMap.set(++readIndex, 'EnumOrder');
-
-                if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
-                    attr.attributes[1].local_variable_table.forEach((a, idx) => {
-                        if (idx === 0) return;
-                        readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
-                    });
-                }
-                // 读取变量池 end
-
                 if (isEnum) {
+                    // 读取变量池 start this.getFieldsInfo();
+                    const attr: any = method.attributes[0];
+                    let readIndex = 0;
+                    readMap.set(readIndex, 'EnumName');
+                    readMap.set(++readIndex, 'EnumOrder');
+
+                    if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
+                        attr.attributes[1].local_variable_table.forEach((a, idx) => {
+                            if (idx === 0) return;
+                            readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
+                        });
+                    }
+                    // 读取变量池 end
+
                     const [inParam, outParam] = paramTypes;
                     const [, , ...newInParam] = inParam;
                     methodInfo.paramTypes = [newInParam, outParam];
