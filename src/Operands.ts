@@ -1,7 +1,9 @@
+import { readInt16BE, readIntBE } from './bytes';
+
 export default class Operands {
     static SIPUSH(operands: number[]) {
         try {
-            return Buffer.from(operands).readInt16BE(0);
+            return readInt16BE(operands, 0);
         } catch (err) {
             console.log(err);
             return null;
@@ -10,7 +12,7 @@ export default class Operands {
 
     static BIPUSH(operands: number[]) {
         try {
-            return Buffer.from(operands).readIntBE(0, 1);
+            return readIntBE(operands, 0);
         } catch (err) {
             console.log(err);
             return null;

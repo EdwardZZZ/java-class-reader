@@ -7,6 +7,22 @@ export function int2UintBytes(n: number): number[] {
     return bytes;
 }
 
+export function readIntBE(bytes: number[], offset = 0) {
+    if (bytes[offset] === undefined) throw new Error('OUT_OF_BOUNDS');
+
+    const val = this[offset];
+
+    return val | (val & 2 ** 7) * 0x1fffffe;
+}
+
+export function readInt16BE(bytes: number[], offset = 0) {
+    if (bytes[offset] === undefined || bytes[offset + 1] === undefined) throw new Error('OUT_OF_BOUNDS');
+
+    const val = bytes[offset] * 2 ** 8 + bytes[offset + 1];
+
+    return val | (val & 2 ** 15) * 0x1fffe;
+}
+
 export function readInt32BE(bytes: number[], offset = 0, unsigned = false) {
     if (bytes[offset] === undefined || bytes[offset + 3] === undefined) throw new Error('OUT_OF_BOUNDS');
 
