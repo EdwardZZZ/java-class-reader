@@ -1,5 +1,5 @@
 import {
-    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo,
+    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo,
 } from 'java-class-tools';
 
 import { getValueFromConstantPool } from './getValueFromConstantPool';
@@ -8,6 +8,8 @@ import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 
 const reader = new JavaClassFileReader();
+
+type TStringKey = { [key: string]: any };
 
 export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
@@ -29,9 +31,9 @@ export default class ClassReader {
 
     fullyQualifiedName: string;
 
-    classInfo: any;
+    classInfo: TStringKey;
 
-    enumInfos: any[] = [];
+    enumInfos: TStringKey[] = null;
 
     getAllInfo({ showCode }: any = {}) {
         const { superClass, dependClass, interfaceName, fullyQualifiedName, classInfo } = this;
@@ -94,7 +96,7 @@ export default class ClassReader {
     }
 
     getClassInfo() {
-        const info: any = {};
+        const info: TStringKey = {};
 
         const {
             constant_pool,
@@ -120,8 +122,7 @@ export default class ClassReader {
             }
 
             if (!isEmpty(annotations)) {
-                const annoResult = getAnnotations(constant_pool, annotations);
-                info.annotations = annoResult;
+                info.annotations = getAnnotations(constant_pool, annotations);
             }
         });
 
@@ -206,7 +207,7 @@ export default class ClassReader {
                             if (methodName === '<clinit>') {
                                 let readIndex = 0;
                                 let reading = false;
-                                let tempVal: any = {};
+                                let tempVal: TStringKey = {};
                                 const enumVal = [];
 
                                 for (const instruction of instructions) {
@@ -243,8 +244,11 @@ export default class ClassReader {
                                 }
 
                                 /* eslint-disable @typescript-eslint/no-unused-vars */
+                                // Method's name enum rename to clinit
                                 methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
-                                this.enumInfos = enumVal;
+                                if (isEnum) {
+                                    this.enumInfos = enumVal;
+                                }
                             }
                         }
 
@@ -277,6 +281,7 @@ export default class ClassReader {
                             if (local_variable_table) {
                                 const variable = {};
                                 const parameters = {};
+
                                 local_variable_table.sort((l1: any, l2: any) => l1.index > l2.index);
                                 for (const attrVar of local_variable_table) {
                                     const {
@@ -327,13 +332,18 @@ export default class ClassReader {
                 descriptor_index,
                 name_index,
                 attributes,
-            }: any = field;
+            }: FieldInfo = field;
 
             const fieldName = getValueFromConstantPool(constant_pool, name_index).name;
             const type = getValueFromConstantPool(constant_pool, descriptor_index).name;
 
             if (this.getSuperClass() === 'java.lang.Enum' && fieldName === '$VALUES') continue;
-            const fieldInfo: any = {
+            const fieldInfo: {
+                fieldName: string,
+                type: string,
+                ACC?: string[],
+                annotations?: TStringKey,
+            } = {
                 fieldName,
                 type,
             };
@@ -346,7 +356,7 @@ export default class ClassReader {
                     constantvalue_index,
                     annotations,
                     signature_index,
-                } = attr;
+                }: any = attr;
 
                 const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
                 const attrValue = getValueFromConstantPool(constant_pool, constantvalue_index);

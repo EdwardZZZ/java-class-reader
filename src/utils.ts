@@ -9,7 +9,7 @@ export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null)
 
 export const isString = (obj: any): obj is string => type(obj) === 'String';
 
-export const replaceSlash = (str: string) => str.replace(/\//g, '.')
+export const replaceSlash = (str: string) => str.replace(/\//g, '.');
 
 /* eslint-disable no-use-before-define */
 /**
@@ -142,7 +142,7 @@ export function parseName(name: string) {
     return replaceSlash(name);
 }
 
-export function getAnnotations(constant_pool: ConstantPoolInfo, annotations: Annotation[]) {
+export function getAnnotations(constant_pool: ConstantPoolInfo[], annotations: Annotation[]) {
     const annotationsResult = {};
     annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {
         const annotationAttr = {};
