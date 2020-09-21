@@ -1,3 +1,7 @@
+import {
+    ConstantType,
+} from 'java-class-tools';
+
 import { isEmpty, parseName } from './utils';
 import { bytes2String } from './bytes';
 
@@ -7,25 +11,25 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
     if (isEmpty(nameIndex) || isEmpty(nameIndex.tag)) return {};
 
     switch (nameIndex.tag) {
-        case 1:
-        case 3:
-        case 4:
+        case ConstantType.UTF8:
+        case ConstantType.INTEGER:
+        case ConstantType.FLOAT:
         {
             const value = bytes2String(nameIndex.bytes);
             return {
                 name: parseName(value),
             };
         }
-        case 5:
-        case 6:
+        case ConstantType.LONG:
+        case ConstantType.DOUBLE:
         {
             return {
                 /* global BigInt */
                 name: ((BigInt(nameIndex.high_bytes) << 32n) + BigInt(nameIndex.low_bytes)).toString(),
             };
         }
-        case 7:
-        case 8:
+        case ConstantType.CLASS:
+        case ConstantType.STRING:
         {
             const value = constant_pool[nameIndex.name_index | nameIndex.string_index];
             const valueChild = bytes2String(value.bytes);
@@ -33,9 +37,9 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
                 name: parseName(valueChild),
             };
         }
-        case 9:
-        case 10:
-        case 11:
+        case ConstantType.FIELDREF:
+        case ConstantType.METHODREF:
+        case ConstantType.INTERFACE_METHODREF:
         {
             const classIndex = constant_pool[nameIndex.class_index];
 
@@ -54,7 +58,7 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
                 descriptor: parseName(descriptor),
             };
         }
-        case 12:
+        case ConstantType.NAME_AND_TYPE:
         {
             const {
                 descriptor_index,
@@ -71,15 +75,19 @@ export function getValueFromConstantPool(constant_pool, name_index?: number) {
                 descriptor: parseName(descriptor),
             };
         }
-        case 15:
+        case ConstantType.METHOD_HANDLE:
         {
             return {};
         }
-        case 16:
+        case ConstantType.METHOD_TYPE:
         {
             return {};
         }
-        case 18:
+        case ConstantType.DYNAMIC:
+        {
+            return {};
+        }
+        case ConstantType.INVOKE_DYNAMIC:
         {
             const nameAndTypeIndex = constant_pool[nameIndex.name_and_type_index];
             const nameAndTypeChildIndex = constant_pool[nameAndTypeIndex.name_index];
