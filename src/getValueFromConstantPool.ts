@@ -1,11 +1,12 @@
 import {
+    ConstantPoolInfo,
     ConstantType,
 } from 'java-class-tools';
 
 import { isEmpty, parseName } from './utils';
 import { bytes2String } from './bytes';
 
-export function getValueFromConstantPool(constant_pool, name_index?: number) {
+export function getValueFromConstantPool(constant_pool: ConstantPoolInfo, name_index?: number) {
     if (isEmpty(constant_pool) || isEmpty(name_index)) return {};
     const nameIndex = constant_pool[name_index];
     if (isEmpty(nameIndex) || isEmpty(nameIndex.tag)) return {};

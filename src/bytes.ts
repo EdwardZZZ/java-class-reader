@@ -43,5 +43,5 @@ export function bytes2String(bytes: Buffer) {
         }
         return strArr.join('');
     }
-    return bytes;
+    return bytes.toString();
 }

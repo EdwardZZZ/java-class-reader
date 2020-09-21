@@ -1,9 +1,13 @@
-import { Annotation } from 'java-class-tools';
+import { Annotation, ConstantPoolInfo } from 'java-class-tools';
 
 import { getValueFromConstantPool } from './getValueFromConstantPool';
 import { BaseTypeKeys, BaseType } from './Const';
 
+export const type = (obj: any): string => Object.prototype.toString.call(obj).slice(8, -1);
+
 export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null))();
+
+export const isString = (obj: any): obj is string => type(obj) === 'String';
 
 export const replaceSlash = (str: string) => str.replace(/\//g, '.')
 
@@ -68,7 +72,7 @@ const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
  * @param {*} name 类型值
  */
 export function parseType(name: string) {
-    if (isEmpty(name)) return name;
+    if (isEmpty(name) || !isString(name)) return name;
     if (name === 'TT;') return 'java.lang.Object';
 
     if (BaseTypeKeys.indexOf(name) > -1) {
@@ -99,8 +103,8 @@ export function parseType(name: string) {
  * 处理 java 类型名称
  * @param {*} name 名称
  */
-export function parseName(name: any) {
-    if (isEmpty(name) || !isNaN(name)) return name;
+export function parseName(name: string) {
+    if (isEmpty(name)) return name;
 
     const inoutResult = name.match(inoutReg);
     if (inoutResult) {
@@ -138,7 +142,7 @@ export function parseName(name: any) {
     return replaceSlash(name);
 }
 
-export function getAnnotations(constant_pool: any, annotations: any) {
+export function getAnnotations(constant_pool: ConstantPoolInfo, annotations: Annotation[]) {
     const annotationsResult = {};
     annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {
         const annotationAttr = {};
