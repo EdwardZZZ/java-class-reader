@@ -5,11 +5,8 @@ import { BaseTypeKeys, BaseType } from './Const';
 
 export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null))();
 
-export function replaceSlash(str: any) {
-    return str.replace(/\//g, '.');
-}
+export const replaceSlash = (str: string) => str.replace(/\//g, '.')
 
-// TODO split([A-Z])
 /* eslint-disable no-use-before-define */
 /**
  * 格式化出入参
