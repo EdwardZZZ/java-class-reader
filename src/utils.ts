@@ -1,3 +1,5 @@
+import { Annotation } from 'java-class-tools';
+
 import { getValueFromConstantPool } from './getValueFromConstantPool';
 import { BaseTypeKeys, BaseType } from './Const';
 
@@ -140,31 +142,20 @@ export function parseName(name: any) {
 }
 
 export function getAnnotations(constant_pool: any, annotations: any) {
-    /**
-     * 非流程方法，此方法在类的注解、方法的注解、属性的注解获取中有用到
-     * java的class字节码中读取注解名称与值
-     */
-
     const annotationsResult = {};
-    annotations.forEach((annotation: any) => {
-        const {
-            type_index,
-            element_value_pairs,
-        } = annotation;
-
+    annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {
         const annotationAttr = {};
         const attributeName = getValueFromConstantPool(constant_pool, type_index);
+
         if (element_value_pairs !== undefined) {
-            element_value_pairs.forEach(({
-                element_name_index,
-                element_value,
-            }) => {
+            element_value_pairs.forEach(({ element_name_index, element_value }: any) => {
                 const name = getValueFromConstantPool(constant_pool, element_name_index);
                 const attributeValue = getValueFromConstantPool(constant_pool, element_value.value.const_value_index);
                 if (attributeValue === undefined) return;
                 annotationAttr[name.name] = attributeValue.name;
             });
         }
+
         annotationsResult[attributeName.name] = annotationAttr;
     });
 

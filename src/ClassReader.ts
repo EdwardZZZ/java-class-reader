@@ -1,5 +1,5 @@
 import {
-    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser,
+    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo,
 } from 'java-class-tools';
 
 import { getValueFromConstantPool } from './getValueFromConstantPool';
@@ -79,19 +79,14 @@ export default class ClassReader {
     }
 
     getDependClass() {
-        const {
-            constant_pool,
-        } = this.classFile;
+        const { constant_pool } = this.classFile;
 
         const dependClasses = [];
-        constant_pool.forEach((classInfo: any) => {
+        constant_pool.forEach((classInfo: ClassInfo) => {
             if (isEmpty(classInfo)) return;
-            const {
-                tag,
-                name_index,
-            } = classInfo;
-            if (tag === 7) {
-                dependClasses.push(getValueFromConstantPool(constant_pool, name_index).name);
+
+            if (classInfo.tag === 7) {
+                dependClasses.push(getValueFromConstantPool(constant_pool, classInfo.name_index).name);
             }
         });
 
@@ -164,13 +159,14 @@ export default class ClassReader {
             if (methodName === '<init>') {
                 if (isEnum) {
                     // 读取变量池 start this.getFieldsInfo();
-                    const attr: any = method.attributes[0];
                     let readIndex = 0;
                     readMap.set(readIndex, 'EnumName');
                     readMap.set(++readIndex, 'EnumOrder');
 
+                    const attr: any = method.attributes[0];
+                    // if (attr.attributes_count === 2) {
                     if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
-                        attr.attributes[1].local_variable_table.forEach((a, idx) => {
+                        (<{ name_index: number }[]>attr.attributes[1].local_variable_table).forEach((a, idx) => {
                             if (idx === 0) return;
                             readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
                         });
