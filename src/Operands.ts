@@ -1,4 +1,4 @@
-import { readInt16BE, readIntBE } from './bytes';
+import { readInt16BE, readInt8BE } from './bytes';
 
 export default class Operands {
     static SIPUSH(operands: number[]) {
@@ -12,7 +12,7 @@ export default class Operands {
 
     static BIPUSH(operands: number[]) {
         try {
-            return readIntBE(operands, 0);
+            return readInt8BE(operands, 0);
         } catch (err) {
             console.log(err);
             return null;

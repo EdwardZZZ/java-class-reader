@@ -7,26 +7,36 @@ export function int2UintBytes(n: number): number[] {
     return bytes;
 }
 
-export function readIntBE(bytes: number[], offset = 0) {
-    if (bytes[offset] === undefined) throw new Error('OUT_OF_BOUNDS');
+export function uint2Int(n: number) {
+    if (n > 0xff || n < -0x80) throw new Error('OUT_OF_BOUNDS');
 
-    const val = this[offset];
+    if (n < 128) return n;
 
-    return val | (val & 2 ** 7) * 0x1fffffe;
+    return n - 256;
 }
 
-export function readInt16BE(bytes: number[], offset = 0) {
-    if (bytes[offset] === undefined || bytes[offset + 1] === undefined) throw new Error('OUT_OF_BOUNDS');
+export function readInt8BE(bytes: number[], offset = 0, unsigned = false) {
+    const first = bytes[offset];
 
-    const val = bytes[offset] * 2 ** 8 + bytes[offset + 1];
+    if (first === undefined) throw new Error('OUT_OF_BOUNDS');
 
-    return val | (val & 2 ** 15) * 0x1fffe;
+    return unsigned ? (first & 0xff) : uint2Int(first);
+}
+
+export function readInt16BE(bytes: number[], offset = 0, unsigned = false) {
+    const first = bytes[offset];
+
+    if (first === undefined || bytes[offset + 1] === undefined) throw new Error('OUT_OF_BOUNDS');
+
+    return (unsigned ? (first << 8) : (uint2Int(first) << 8)) + bytes[offset + 1];
 }
 
 export function readInt32BE(bytes: number[], offset = 0, unsigned = false) {
-    if (bytes[offset] === undefined || bytes[offset + 3] === undefined) throw new Error('OUT_OF_BOUNDS');
+    const first = bytes[offset];
 
-    return (unsigned ? (bytes[offset] * 2 ** 24) : (bytes[offset] << 24))
+    if (first === undefined || bytes[offset + 3] === undefined) throw new Error('OUT_OF_BOUNDS');
+
+    return (unsigned ? (first * 2 ** 24) : (first << 24))
         + bytes[++offset] * 2 ** 16
         + bytes[++offset] * 2 ** 8
         + bytes[++offset];
