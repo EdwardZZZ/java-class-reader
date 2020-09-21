@@ -20,7 +20,7 @@ export function readInt8BE(bytes: number[], offset = 0, unsigned = false) {
 
     if (first === undefined) throw new Error('OUT_OF_BOUNDS');
 
-    return unsigned ? (first & 0xff) : uint2Int(first);
+    return unsigned ? first : uint2Int(first);
 }
 
 export function readInt16BE(bytes: number[], offset = 0, unsigned = false) {
