@@ -7,7 +7,7 @@ export function int2UintBytes(n: number): number[] {
     return bytes;
 }
 
-export function uint2Int(n: number) {
+export function uint2Byte(n: number) {
     if (n > 0xff || n < -0x80) throw new Error('OUT_OF_BOUNDS');
 
     if (n < 128) return n;
@@ -20,7 +20,7 @@ export function readInt8BE(bytes: number[], offset = 0, unsigned = false) {
 
     if (first === undefined) throw new Error('OUT_OF_BOUNDS');
 
-    return unsigned ? first : uint2Int(first);
+    return unsigned ? first : uint2Byte(first);
 }
 
 export function readInt16BE(bytes: number[], offset = 0, unsigned = false) {
@@ -28,7 +28,7 @@ export function readInt16BE(bytes: number[], offset = 0, unsigned = false) {
 
     if (first === undefined || bytes[offset + 1] === undefined) throw new Error('OUT_OF_BOUNDS');
 
-    return (unsigned ? (first << 8) : (uint2Int(first) << 8)) + bytes[offset + 1];
+    return (unsigned ? (first << 8) : (uint2Byte(first) << 8)) + bytes[offset + 1];
 }
 
 export function readInt32BE(bytes: number[], offset = 0, unsigned = false) {

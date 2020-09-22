@@ -3,7 +3,7 @@ import { readInt16BE, readInt8BE } from './bytes';
 export default class Operands {
     static SIPUSH(operands: number[]) {
         try {
-            return readInt16BE(operands, 0);
+            return readInt16BE(operands);
         } catch (err) {
             console.log(err);
             return null;
@@ -12,7 +12,7 @@ export default class Operands {
 
     static BIPUSH(operands: number[]) {
         try {
-            return readInt8BE(operands, 0);
+            return readInt8BE(operands);
         } catch (err) {
             console.log(err);
             return null;
