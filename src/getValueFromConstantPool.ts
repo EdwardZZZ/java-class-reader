@@ -5,6 +5,10 @@ import {
 import { isEmpty, parseName } from './utils';
 import { bytes2String } from './bytes';
 
+// java 9
+const CONSTANT_Module = 19;
+const CONSTANT_Package = 20;
+
 /**
  * get value from constant_pool
  * @param constant_pool <T extends ConstantPoolInfo>[]
@@ -83,11 +87,18 @@ export function getValueFromConstantPool(constant_pool: any[], index: number) {
         }
         case ConstantType.METHOD_HANDLE:
         {
+            // const { reference_kind, reference_index } = info;
             return {};
         }
         case ConstantType.METHOD_TYPE:
         {
-            return {};
+            // MethodTypeInfo
+            const descriptorInfo = constant_pool[info.descriptor_index];
+            const descriptor = bytes2String(descriptorInfo.bytes);
+
+            return {
+                descriptor: parseName(descriptor),
+            };
         }
         case ConstantType.DYNAMIC:
         {
@@ -102,6 +113,14 @@ export function getValueFromConstantPool(constant_pool: any[], index: number) {
             return {
                 name: parseName(name),
             };
+        }
+        case CONSTANT_Module:
+        {
+            return {};
+        }
+        case CONSTANT_Package:
+        {
+            return {};
         }
         default:
         {
