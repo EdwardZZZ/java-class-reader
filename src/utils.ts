@@ -142,6 +142,11 @@ export function parseName(name: string) {
     return replaceSlash(name);
 }
 
+/**
+ * get annotation
+ * @param constant_pool ConstantPoolInfo[]
+ * @param annotations Annotation[]
+ */
 export function getAnnotations(constant_pool: ConstantPoolInfo[], annotations: Annotation[]) {
     const annotationsResult = {};
     annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {

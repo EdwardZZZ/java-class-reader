@@ -5,6 +5,11 @@ import {
 import { isEmpty, parseName } from './utils';
 import { bytes2String } from './bytes';
 
+/**
+ * get value from constant_pool
+ * @param constant_pool <T extends ConstantPoolInfo>[]
+ * @param index name index
+ */
 export function getValueFromConstantPool(constant_pool: any[], name_index?: number) {
     if (isEmpty(constant_pool) || isEmpty(name_index)) return {};
     const nameIndex = constant_pool[name_index];
