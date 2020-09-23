@@ -1,6 +1,6 @@
 import { Annotation, ConstantPoolInfo } from 'java-class-tools';
 
-import { getValueFromConstantPool } from './getValueFromConstantPool';
+import { readData } from './ConstantPool';
 import { BaseTypeKeys, BaseType } from './Const';
 
 export const type = (obj: any): string => Object.prototype.toString.call(obj).slice(8, -1);
@@ -151,12 +151,12 @@ export function getAnnotations(constant_pool: ConstantPoolInfo[], annotations: A
     const annotationsResult = {};
     annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {
         const annotationAttr = {};
-        const attributeName = getValueFromConstantPool(constant_pool, type_index);
+        const attributeName = readData(constant_pool, type_index);
 
         if (element_value_pairs !== undefined) {
             element_value_pairs.forEach(({ element_name_index, element_value }: any) => {
-                const name = getValueFromConstantPool(constant_pool, element_name_index);
-                const attributeValue = getValueFromConstantPool(constant_pool, element_value.value.const_value_index);
+                const name = readData(constant_pool, element_name_index);
+                const attributeValue = readData(constant_pool, element_value.value.const_value_index);
                 if (attributeValue === undefined) return;
                 annotationAttr[name.name] = attributeValue.name;
             });

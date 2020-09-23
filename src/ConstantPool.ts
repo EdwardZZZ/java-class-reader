@@ -14,7 +14,7 @@ const CONSTANT_Package = 20;
  * @param constant_pool <T extends ConstantPoolInfo>[]
  * @param index name index
  */
-export function getValueFromConstantPool(constant_pool: any[], index: number) {
+export function readData(constant_pool: any[], index: number) {
     if (isEmpty(constant_pool) || isEmpty(index)) return {};
 
     const info = constant_pool[index];
@@ -87,8 +87,11 @@ export function getValueFromConstantPool(constant_pool: any[], index: number) {
         }
         case ConstantType.METHOD_HANDLE:
         {
-            // const { reference_kind, reference_index } = info;
-            return {};
+            const { reference_kind: referenceKind, reference_index: referenceIndex } = info;
+            return {
+                referenceKind,
+                referenceIndex,
+            };
         }
         case ConstantType.METHOD_TYPE:
         {

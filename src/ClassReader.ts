@@ -2,7 +2,7 @@ import {
     JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo,
 } from 'java-class-tools';
 
-import { getValueFromConstantPool } from './getValueFromConstantPool';
+import { readData } from './ConstantPool';
 import { isEmpty, getAnnotations } from './utils';
 import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
@@ -61,7 +61,7 @@ export default class ClassReader {
             interfaces,
         } = this.classFile;
 
-        return interfaces.map((itf) => (getValueFromConstantPool(constant_pool, itf).name));
+        return interfaces.map((itf) => (readData(constant_pool, itf).name));
     }
 
     getFullyQualifiedName() {
@@ -69,7 +69,7 @@ export default class ClassReader {
             constant_pool,
             this_class,
         } = this.classFile;
-        return getValueFromConstantPool(constant_pool, this_class).name;
+        return readData(constant_pool, this_class).name;
     }
 
     getSuperClass() {
@@ -77,7 +77,7 @@ export default class ClassReader {
             constant_pool,
             super_class,
         } = this.classFile;
-        return getValueFromConstantPool(constant_pool, super_class).name;
+        return readData(constant_pool, super_class).name;
     }
 
     getDependClass() {
@@ -88,7 +88,7 @@ export default class ClassReader {
             if (isEmpty(classInfo)) return;
 
             if (classInfo.tag === 7) {
-                dependClasses.push(getValueFromConstantPool(constant_pool, classInfo.name_index).name);
+                dependClasses.push(readData(constant_pool, classInfo.name_index).name);
             }
         });
 
@@ -109,15 +109,15 @@ export default class ClassReader {
                 attribute_name_index,
                 annotations,
             } = attribute;
-            const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
+            const attrName = readData(constant_pool, attribute_name_index);
 
             if (!isEmpty(signature_index)) {
-                const signature = getValueFromConstantPool(constant_pool, signature_index);
+                const signature = readData(constant_pool, signature_index);
                 info[attrName.name] = signature.name;
             }
 
             if (!isEmpty(sourcefile_index)) {
-                const sourcefile = getValueFromConstantPool(constant_pool, sourcefile_index);
+                const sourcefile = readData(constant_pool, sourcefile_index);
                 info[attrName.name] = sourcefile.name;
             }
 
@@ -149,12 +149,12 @@ export default class ClassReader {
                 attributes,
             }: any = method;
 
-            const methodName = getValueFromConstantPool(constant_pool, name_index).name;
+            const methodName = readData(constant_pool, name_index).name;
 
             const methodInfo: any = {
                 methodName,
             };
-            const paramTypes = getValueFromConstantPool(constant_pool, descriptor_index).name;
+            const paramTypes = readData(constant_pool, descriptor_index).name;
             methodInfo.paramTypes = paramTypes;
 
             if (methodName === '<init>') {
@@ -169,7 +169,7 @@ export default class ClassReader {
                     if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
                         (<{ name_index: number }[]>attr.attributes[1].local_variable_table).forEach((a, idx) => {
                             if (idx === 0) return;
-                            readMap.set(++readIndex, getValueFromConstantPool(constant_pool, a.name_index).name);
+                            readMap.set(++readIndex, readData(constant_pool, a.name_index).name);
                         });
                     }
                     // 读取变量池 end
@@ -197,7 +197,7 @@ export default class ClassReader {
                     } = attribute;
 
                     if (attribute_name_index) {
-                        const attrName = getValueFromConstantPool(constant_pool, attribute_name_index).name;
+                        const attrName = readData(constant_pool, attribute_name_index).name;
 
                         // TODO 此处仅解析 Enum，其它方法及代码待解析
                         if (attrName === 'Code' && code) {
@@ -227,7 +227,7 @@ export default class ClassReader {
                                         tempVal[name] = +result;
                                     } else if (reading && opcode === Opcode.LDC) {
                                         const name = readMap.get(readIndex++);
-                                        const result = getValueFromConstantPool(constant_pool, operands[0]).name;
+                                        const result = readData(constant_pool, operands[0]).name;
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.SIPUSH) {
                                         const name = readMap.get(readIndex++);
@@ -253,11 +253,11 @@ export default class ClassReader {
                         }
 
                         if (attrName === 'Exceptions' && exception_index_table) {
-                            methodInfo.exception = exception_index_table.map((expt: any) => getValueFromConstantPool(constant_pool, expt).name);
+                            methodInfo.exception = exception_index_table.map((expt: any) => readData(constant_pool, expt).name);
                         }
 
                         if (attrName === 'Signature' && signature_index) {
-                            const paramDetailTypes = getValueFromConstantPool(constant_pool, signature_index);
+                            const paramDetailTypes = readData(constant_pool, signature_index);
                             methodInfo.paramDetailTypes = paramDetailTypes.name;
                         }
                     }
@@ -274,7 +274,7 @@ export default class ClassReader {
                             } = attr;
 
                             // if (attribute_name_index) {
-                            //     const attrName = getValueFromConstantPool(constant_pool, attribute_name_index).name;
+                            //     const attrName = readData(constant_pool, attribute_name_index).name;
                             //     console.log(methodName, attrName);
                             // }
 
@@ -290,8 +290,8 @@ export default class ClassReader {
                                         descriptor_index,
                                     } = attrVar;
 
-                                    const variName = getValueFromConstantPool(constant_pool, name_index).name;
-                                    const typeName = getValueFromConstantPool(constant_pool, descriptor_index).name;
+                                    const variName = readData(constant_pool, name_index).name;
+                                    const typeName = readData(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
                                     // 倒数几位是参数？
@@ -334,8 +334,8 @@ export default class ClassReader {
                 attributes,
             }: FieldInfo = field;
 
-            const fieldName = getValueFromConstantPool(constant_pool, name_index).name;
-            const type = getValueFromConstantPool(constant_pool, descriptor_index).name;
+            const fieldName = readData(constant_pool, name_index).name;
+            const type = readData(constant_pool, descriptor_index).name;
 
             if (this.getSuperClass() === 'java.lang.Enum' && fieldName === '$VALUES') continue;
             const fieldInfo: {
@@ -358,14 +358,14 @@ export default class ClassReader {
                     signature_index,
                 }: any = attr;
 
-                const attrName = getValueFromConstantPool(constant_pool, attribute_name_index);
-                const attrValue = getValueFromConstantPool(constant_pool, constantvalue_index);
+                const attrName = readData(constant_pool, attribute_name_index);
+                const attrValue = readData(constant_pool, constantvalue_index);
                 if (attrValue.name) {
                     fieldInfo[attrName.name] = attrValue.name;
                 }
 
                 if (!isEmpty(signature_index)) {
-                    const signature = getValueFromConstantPool(constant_pool, signature_index).name;
+                    const signature = readData(constant_pool, signature_index).name;
                     fieldInfo.type = signature;
                 }
 
