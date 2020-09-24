@@ -11,6 +11,14 @@ export const isString = (obj: any): obj is string => type(obj) === 'String';
 
 export const replaceSlash = (str: string) => str.replace(/\//g, '.');
 
+export const mixinArr = (arr1: string[], arr2: string[]) => {
+    arr2.forEach(str => {
+        if (!arr1.includes(str)) {
+            arr1.push(str);
+        }
+    });
+};
+
 /* eslint-disable no-use-before-define */
 /**
  * 格式化出入参

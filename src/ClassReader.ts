@@ -3,7 +3,7 @@ import {
 } from 'java-class-tools';
 
 import { readData } from './ConstantPool';
-import { isEmpty, getAnnotations } from './utils';
+import { isEmpty, getAnnotations, mixinArr } from './utils';
 import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 
@@ -43,10 +43,11 @@ export default class ClassReader {
         const { enumInfos } = this; // after getMethodsInfo
 
         return {
-            superClass,
+            package: fullyQualifiedName.slice(0, fullyQualifiedName.lastIndexOf('.')),
             dependClass,
-            interfaceName,
             fullyQualifiedName,
+            superClass,
+            interfaceName,
             classInfo,
             methodsInfo,
             fieldsInfo,
@@ -128,7 +129,9 @@ export default class ClassReader {
             }
 
             if (!isEmpty(annotations)) {
-                info.annotations = getAnnotations(constant_pool, annotations);
+                const annos = getAnnotations(constant_pool, annotations);
+                mixinArr(this.dependClass, Object.keys(annos));
+                info.annotations = annos;
             }
         });
 
@@ -269,7 +272,9 @@ export default class ClassReader {
                     }
 
                     if (!isEmpty(annotations)) {
-                        methodInfo.annotations = getAnnotations(constant_pool, annotations);
+                        const annos = getAnnotations(constant_pool, annotations);
+                        mixinArr(this.dependClass, Object.keys(annos));
+                        methodInfo.annotations = annos;
                     }
 
                     if (!isEmpty(attribute.attributes)) {
@@ -376,7 +381,9 @@ export default class ClassReader {
                 }
 
                 if (!isEmpty(annotations)) {
-                    fieldInfo.annotations = getAnnotations(constant_pool, annotations);
+                    const annos = getAnnotations(constant_pool, annotations);
+                    mixinArr(this.dependClass, Object.keys(annos));
+                    fieldInfo.annotations = annos;
                 }
             }
 
