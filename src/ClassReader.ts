@@ -1,5 +1,5 @@
 import {
-    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo,
+    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo, StackMapFrame,
 } from 'java-class-tools';
 
 import { readData } from './ConstantPool';
@@ -280,16 +280,37 @@ export default class ClassReader {
                     if (!isEmpty(attribute.attributes)) {
                         for (const attr of attribute.attributes) {
                             const {
-                                // attribute_name_index,
+                                attribute_name_index,
                                 local_variable_table,
+                                line_number_table,
+                                entries,
                             } = attr;
 
-                            // if (attribute_name_index) {
-                            //     const attrName = readData(constant_pool, attribute_name_index).name;
-                            //     console.log(methodName, attrName);
-                            // }
 
-                            if (local_variable_table) {
+                            const attrName = readData(constant_pool, attribute_name_index).name;
+
+                            if (attrName === 'StackMapTable' && entries) {
+                                /* eslint-disable arrow-body-style */
+                                methodInfo.entries = entries.map((entry: StackMapFrame) => {
+                                    /**
+                                     * frame_type
+                                     * 0-63 SameFrame
+                                     * 64-127 SameLocalsOneStackItemFrame
+                                     * 247 SameLocalsOneStackItemFrameExtended
+                                     * 248-250 ChopFrame
+                                     * 251 SameFrameExtended
+                                     * 252-254 AppendFrame
+                                     * 255 FullFrame
+                                     */
+                                    return entry;
+                                });
+                            }
+
+                            if (attrName === 'LineNumberTable' && line_number_table) {
+                                methodInfo.LineNumberTable = line_number_table;
+                            }
+
+                            if (attrName === 'LocalVariableTable' && local_variable_table) {
                                 const variable = {};
                                 const parameters = {};
 
@@ -314,8 +335,10 @@ export default class ClassReader {
                                         parameters[variName] = typeName;
                                     }
                                 }
-                                methodInfo.variable = variable;
-                                methodInfo.parameters = parameters;
+                                methodInfo.LocalVariableTable = {
+                                    variable,
+                                    parameters,
+                                };
                             }
                         }
                     }
