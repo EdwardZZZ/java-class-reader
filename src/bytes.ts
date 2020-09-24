@@ -24,9 +24,7 @@ export function int2UintBytes(n: number): number[] {
 export function uint2Byte(n: number) {
     if (n > 0xff || n < -0x80) throw new Error('OUT_OF_BOUNDS');
 
-    if (n < 128) return n;
-
-    return n - 256;
+    return n < 128 ? n : n - 256;
 }
 
 /**

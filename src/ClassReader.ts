@@ -14,10 +14,10 @@ type TStringKey = { [key: string]: any };
 export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
         this.classFile = reader.read(data);
+        this.fullyQualifiedName = this.getFullyQualifiedName();
         this.superClass = this.getSuperClass();
         this.dependClass = this.getDependClass();
         this.interfaceName = this.getInterfaceName();
-        this.fullyQualifiedName = this.getFullyQualifiedName();
         this.classInfo = this.getClassInfo();
     }
 
@@ -69,6 +69,7 @@ export default class ClassReader {
             constant_pool,
             this_class,
         } = this.classFile;
+
         return readData(constant_pool, this_class).name;
     }
 
@@ -77,6 +78,7 @@ export default class ClassReader {
             constant_pool,
             super_class,
         } = this.classFile;
+
         return readData(constant_pool, super_class).name;
     }
 
@@ -88,7 +90,11 @@ export default class ClassReader {
             if (isEmpty(classInfo)) return;
 
             if (classInfo.tag === 7) {
-                dependClasses.push(readData(constant_pool, classInfo.name_index).name);
+                const { name } = readData(constant_pool, classInfo.name_index);
+
+                if (!~['java.lang.Object', this.fullyQualifiedName].indexOf(name)) {
+                    dependClasses.push(name);
+                }
             }
         });
 
@@ -365,8 +371,8 @@ export default class ClassReader {
                 }
 
                 if (!isEmpty(signature_index)) {
-                    const signature = readData(constant_pool, signature_index).name;
-                    fieldInfo.type = signature;
+                    const signature = readData(constant_pool, signature_index);
+                    fieldInfo.type = signature.name;
                 }
 
                 if (!isEmpty(annotations)) {
