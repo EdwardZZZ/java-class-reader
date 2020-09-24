@@ -208,12 +208,13 @@ export default class ClassReader {
                     if (attribute_name_index) {
                         const attrName = readData(constant_pool, attribute_name_index).name;
 
-                        // TODO 此处仅解析 Enum，其它方法及代码待解析
                         if (attrName === 'Code' && code) {
                             const instructions = InstructionParser.fromBytecode(code);
 
                             if (showCode) methodInfo.codes = instructions;
-                            if (methodName === '<clinit>') {
+
+                            // TODO 此处仅解析 Enum，其它方法及代码待解析
+                            if (methodName === '<clinit>' && isEnum) {
                                 let readIndex = 0;
                                 let reading = false;
                                 let tempVal: TStringKey = {};
@@ -253,11 +254,8 @@ export default class ClassReader {
                                 }
 
                                 /* eslint-disable @typescript-eslint/no-unused-vars */
-                                // Method's name enum rename to clinit
                                 methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
-                                if (isEnum) {
-                                    this.enumInfos = enumVal;
-                                }
+                                this.enumInfos = enumVal;
                             }
                         }
 
@@ -285,7 +283,6 @@ export default class ClassReader {
                                 line_number_table,
                                 entries,
                             } = attr;
-
 
                             const attrName = readData(constant_pool, attribute_name_index).name;
 
