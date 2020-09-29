@@ -1,7 +1,7 @@
 {
   "name": "java-class-reader",
   "description": "Read and write java class files in node or browser base on java-class-tools",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "dist/index.js",
   "files": [
     "dist",
@@ -46,5 +46,13 @@
     {
       "type": "MIT"
     }
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EdwardZZZ/java-class-reader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EdwardZZZ/java-class-reader/issues"
+  },
+  "homepage": "https://github.com/EdwardZZZ/java-class-reader#readme"
 }

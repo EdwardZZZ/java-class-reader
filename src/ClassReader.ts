@@ -21,19 +21,19 @@ export default class ClassReader {
         this.classInfo = this.getClassInfo();
     }
 
-    classFile: JavaClassFile;
+    private classFile: JavaClassFile;
 
-    superClass: string;
+    private superClass: string;
 
-    dependClass: string[];
+    private dependClass: string[];
 
-    interfaceName: string[];
+    private interfaceName: string[];
 
-    fullyQualifiedName: string;
+    private fullyQualifiedName: string;
 
-    classInfo: TStringKey;
+    private classInfo: TStringKey;
 
-    enumInfos: TStringKey[] = null;
+    private enumInfos: TStringKey[] = null;
 
     getAllInfo({ showCode }: any = {}) {
         const { superClass, dependClass, interfaceName, fullyQualifiedName, classInfo } = this;
@@ -56,7 +56,7 @@ export default class ClassReader {
         };
     }
 
-    getInterfaceName() {
+    getInterfaceName(): string[] {
         const {
             constant_pool,
             interfaces,
@@ -65,7 +65,7 @@ export default class ClassReader {
         return interfaces.map((itf) => (readData(constant_pool, itf).name));
     }
 
-    getFullyQualifiedName() {
+    getFullyQualifiedName(): string {
         const {
             constant_pool,
             this_class,
@@ -74,7 +74,7 @@ export default class ClassReader {
         return readData(constant_pool, this_class).name;
     }
 
-    getSuperClass() {
+    getSuperClass(): string {
         const {
             constant_pool,
             super_class,
@@ -83,7 +83,7 @@ export default class ClassReader {
         return readData(constant_pool, super_class).name;
     }
 
-    getDependClass() {
+    getDependClass(): string[] {
         const { constant_pool } = this.classFile;
 
         const dependClasses = [];
