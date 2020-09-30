@@ -291,6 +291,8 @@ export default class ClassReader {
                                 const parameters = {};
 
                                 local_variable_table.sort((l1: any, l2: any) => (l1.index - l2.index));
+                                const paramLen = (methodInfo.paramTypes[0] || []).length;
+
                                 for (const attrVar of local_variable_table) {
                                     const {
                                         index,
@@ -302,7 +304,7 @@ export default class ClassReader {
                                     const typeName = readData(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    if (index > 0 && Object.keys(parameters).length < methodInfo.paramTypes[0].length) {
+                                    if (index > 0 && Object.keys(parameters).length < paramLen) {
                                         parameters[variName] = typeName;
                                     }
                                 }
@@ -317,7 +319,7 @@ export default class ClassReader {
                                     readMap.set(++readIndex, 'EnumOrder');
 
                                     for (const { index, name_index } of local_variable_table) {
-                                        if (index > 0 && readIndex - 2 <= methodInfo.paramTypes[0].length) {
+                                        if (index > 0 && readIndex - 2 <= paramLen) {
                                             readMap.set(++readIndex, readData(constant_pool, name_index).name);
                                         }
                                     }
