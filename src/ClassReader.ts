@@ -85,6 +85,7 @@ export default class ClassReader {
 
     getDependClass(): string[] {
         const { constant_pool } = this.classFile;
+        const { superClass, fullyQualifiedName } = this;
 
         const dependClasses = [];
         constant_pool.forEach((classInfo: ClassInfo) => {
@@ -93,7 +94,9 @@ export default class ClassReader {
             if (classInfo.tag === 7) {
                 const { name } = readData(constant_pool, classInfo.name_index);
 
-                if (!~name.indexOf(this.fullyQualifiedName) && !(/^java\.lang\.[a-zA-z]+$/.test(name)) && !(/^java\.util\.[a-zA-z]+$/.test(name))) {
+                if (name !== fullyQualifiedName && !(/^java\.lang\.[a-zA-z]+$/.test(name)) && !(/^java\.util\.[a-zA-z]+$/.test(name))) {
+                    if (superClass === 'java.lang.Enum' && name === `${fullyQualifiedName}[]`) return;
+
                     dependClasses.push(name);
                 }
             }
@@ -178,11 +181,17 @@ export default class ClassReader {
                 for (const attribute of attributes) {
                     const {
                         code,
-                        signature_index,
                         annotations,
+                        signature_index,
                         attribute_name_index,
                         exception_index_table,
                     } = attribute;
+
+                    if (!isEmpty(annotations)) {
+                        const annos = getAnnotations(constant_pool, annotations);
+                        mixinArr(this.dependClass, Object.keys(annos));
+                        methodInfo.annotations = annos;
+                    }
 
                     if (attribute_name_index) {
                         const attrName = readData(constant_pool, attribute_name_index).name;
@@ -246,12 +255,6 @@ export default class ClassReader {
                             const paramDetailTypes = readData(constant_pool, signature_index);
                             methodInfo.paramDetailTypes = paramDetailTypes.name;
                         }
-                    }
-
-                    if (!isEmpty(annotations)) {
-                        const annos = getAnnotations(constant_pool, annotations);
-                        mixinArr(this.dependClass, Object.keys(annos));
-                        methodInfo.annotations = annos;
                     }
 
                     if (!isEmpty(attribute.attributes)) {
@@ -361,7 +364,7 @@ export default class ClassReader {
             const fieldName = readData(constant_pool, name_index).name;
             const type = readData(constant_pool, descriptor_index).name;
 
-            if (this.getSuperClass() === 'java.lang.Enum' && fieldName === '$VALUES') continue;
+            if (this.superClass === 'java.lang.Enum' && fieldName === '$VALUES') continue;
             const fieldInfo: {
                 fieldName: string,
                 type: string,
