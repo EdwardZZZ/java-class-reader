@@ -93,7 +93,7 @@ export default class ClassReader {
             if (classInfo.tag === 7) {
                 const { name } = readData(constant_pool, classInfo.name_index);
 
-                if (this.fullyQualifiedName !== name && !(/^java\.lang\.[a-zA-z]+$/.test(name))) {
+                if (!~name.indexOf(this.fullyQualifiedName) && !(/^java\.lang\.[a-zA-z]+$/.test(name))) {
                     dependClasses.push(name);
                 }
             }
@@ -159,6 +159,8 @@ export default class ClassReader {
             }: any = method;
 
             const methodName = readData(constant_pool, name_index).name;
+
+            if (isEnum && ~['values', 'valueOf'].indexOf(methodName)) return;
 
             const methodInfo: any = {
                 methodName,
