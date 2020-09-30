@@ -168,29 +168,6 @@ export default class ClassReader {
             const paramTypes = readData(constant_pool, descriptor_index).name;
             methodInfo.paramTypes = paramTypes;
 
-            if (methodName === '<init>') {
-                if (isEnum) {
-                    // 读取变量池 start this.getFieldsInfo();
-                    let readIndex = 0;
-                    readMap.set(readIndex, 'EnumName');
-                    readMap.set(++readIndex, 'EnumOrder');
-
-                    const attr: any = method.attributes[0];
-                    // if (attr.attributes_count === 2) {
-                    if (attr.attributes && attr.attributes[1] && attr.attributes[1].local_variable_table) {
-                        (<{ name_index: number }[]>attr.attributes[1].local_variable_table).forEach((a, idx) => {
-                            if (idx === 0) return;
-                            readMap.set(++readIndex, readData(constant_pool, a.name_index).name);
-                        });
-                    }
-                    // 读取变量池 end
-
-                    const [inParam, outParam] = paramTypes;
-                    const [, , ...newInParam] = inParam;
-                    methodInfo.paramTypes = [newInParam, outParam];
-                }
-            }
-
             if (methodName === '<clinit>') {
                 // staticConstructMethod = method;
             }
@@ -313,7 +290,7 @@ export default class ClassReader {
                                 const variable = {};
                                 const parameters = {};
 
-                                local_variable_table.sort((l1: any, l2: any) => l1.index > l2.index);
+                                local_variable_table.sort((l1: any, l2: any) => (l1.index - l2.index));
                                 for (const attrVar of local_variable_table) {
                                     const {
                                         index,
@@ -325,15 +302,27 @@ export default class ClassReader {
                                     const typeName = readData(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    // 倒数几位是参数？
-                                    const paramKeys = Object.keys(parameters);
-                                    let psn = 1;
-                                    if (methodInfo.ACC && methodInfo.ACC.indexOf('static') > -1) psn = 0;
-                                    if (isEnum) psn = 3;
-                                    if (paramTypes[0] && paramKeys.length < paramTypes[0].length && index === paramKeys.length + psn) {
+                                    if (index > 0 && Object.keys(parameters).length < methodInfo.paramTypes[0].length) {
                                         parameters[variName] = typeName;
                                     }
                                 }
+
+                                if (isEnum && methodName === '<init>') {
+                                    const [inParam, outParam] = paramTypes;
+                                    const [, , ...newInParam] = inParam;
+                                    methodInfo.paramTypes = [newInParam, outParam];
+
+                                    let readIndex = 0;
+                                    readMap.set(readIndex, 'EnumName');
+                                    readMap.set(++readIndex, 'EnumOrder');
+
+                                    for (const { index, name_index } of local_variable_table) {
+                                        if (index > 0 && readIndex - 2 <= methodInfo.paramTypes[0].length) {
+                                            readMap.set(++readIndex, readData(constant_pool, name_index).name);
+                                        }
+                                    }
+                                }
+
                                 methodInfo.LocalVariableTable = {
                                     variable,
                                     parameters,
