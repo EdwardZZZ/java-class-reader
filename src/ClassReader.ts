@@ -93,7 +93,7 @@ export default class ClassReader {
             if (classInfo.tag === 7) {
                 const { name } = readData(constant_pool, classInfo.name_index);
 
-                if (!~name.indexOf(this.fullyQualifiedName) && !(/^java\.lang\.[a-zA-z]+$/.test(name))) {
+                if (!~name.indexOf(this.fullyQualifiedName) && !(/^java\.lang\.[a-zA-z]+$/.test(name)) && !(/^java\.util\.[a-zA-z]+$/.test(name))) {
                     dependClasses.push(name);
                 }
             }
