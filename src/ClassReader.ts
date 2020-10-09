@@ -2,8 +2,8 @@ import {
     JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo, StackMapFrame,
 } from 'java-class-tools';
 
-import { readData } from './ConstantPool';
-import { isEmpty, getAnnotations, mixinArr } from './utils';
+import { readData, getAnnotations } from './ConstantPool';
+import { isEmpty, mixinArr } from './utils';
 import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 

@@ -1,5 +1,8 @@
 import {
-    ConstantType,
+    ConstantPoolInfo, ClassInfo, FieldRefInfo, MethodRefInfo, InterfaceMethodRefInfo,
+    StringInfo, IntegerInfo, FloatInfo, LongInfo, DoubleInfo, NameAndTypeInfo, Utf8Info,
+    MethodHandleInfo, MethodTypeInfo, InvokeDynamicInfo,
+    ConstantType, Annotation,
 } from 'java-class-tools';
 
 import { isEmpty, parseName } from './utils';
@@ -9,15 +12,20 @@ import { bytes2String } from './bytes';
 const CONSTANT_Module = 19;
 const CONSTANT_Package = 20;
 
+type TConstantPoolInfo = ConstantPoolInfo & ClassInfo & FieldRefInfo & MethodRefInfo &
+    InterfaceMethodRefInfo & StringInfo & IntegerInfo & FloatInfo & LongInfo & DoubleInfo &
+    NameAndTypeInfo & Utf8Info & MethodHandleInfo & MethodTypeInfo & InvokeDynamicInfo;
+
 /**
  * get value from constant_pool
  * @param constant_pool <T extends ConstantPoolInfo>[]
  * @param index name index
  */
-export function readData(constant_pool: any[], index: number) {
+export function readData(constant_pool: ConstantPoolInfo[], index: number) {
     if (isEmpty(constant_pool) || isEmpty(index)) return {};
 
-    const info = constant_pool[index];
+    const pool = constant_pool as TConstantPoolInfo[];
+    const info = pool[index];
     if (isEmpty(info) || isEmpty(info.tag)) return {};
 
     switch (info.tag) {
@@ -41,7 +49,7 @@ export function readData(constant_pool: any[], index: number) {
         case ConstantType.CLASS:
         case ConstantType.STRING:
         {
-            const value = constant_pool[info.name_index | info.string_index];
+            const value = pool[info.name_index | info.string_index];
             const valueChild = bytes2String(value.bytes);
             return {
                 name: parseName(valueChild),
@@ -51,15 +59,15 @@ export function readData(constant_pool: any[], index: number) {
         case ConstantType.METHODREF:
         case ConstantType.INTERFACE_METHODREF:
         {
-            const clazzInfo = constant_pool[info.class_index];
+            const clazzInfo = pool[info.class_index];
 
-            const classInfoNameInfo = constant_pool[clazzInfo.name_index];
+            const classInfoNameInfo = pool[clazzInfo.name_index];
             const clazz = bytes2String(classInfoNameInfo.bytes);
 
-            const nameAndTypeInfo = constant_pool[info.name_and_type_index];
-            const nameAndTypeNameInfo = constant_pool[nameAndTypeInfo.name_index];
+            const nameAndTypeInfo = pool[info.name_and_type_index];
+            const nameAndTypeNameInfo = pool[nameAndTypeInfo.name_index];
             const name = bytes2String(nameAndTypeNameInfo.bytes);
-            const descriptorInfo = constant_pool[nameAndTypeInfo.descriptor_index];
+            const descriptorInfo = pool[nameAndTypeInfo.descriptor_index];
             const descriptor = bytes2String(descriptorInfo.bytes);
 
             return {
@@ -75,9 +83,9 @@ export function readData(constant_pool: any[], index: number) {
                 name_index,
             } = info;
 
-            const nameInfo = constant_pool[name_index];
+            const nameInfo = pool[name_index];
             const name = bytes2String(nameInfo.bytes);
-            const descriptorInfo = constant_pool[descriptor_index];
+            const descriptorInfo = pool[descriptor_index];
             const descriptor = bytes2String(descriptorInfo.bytes);
 
             return {
@@ -96,7 +104,7 @@ export function readData(constant_pool: any[], index: number) {
         case ConstantType.METHOD_TYPE:
         {
             // MethodTypeInfo
-            const descriptorInfo = constant_pool[info.descriptor_index];
+            const descriptorInfo = pool[info.descriptor_index];
             const descriptor = bytes2String(descriptorInfo.bytes);
 
             return {
@@ -109,8 +117,8 @@ export function readData(constant_pool: any[], index: number) {
         }
         case ConstantType.INVOKE_DYNAMIC:
         {
-            const nameAndTypeInfo = constant_pool[info.name_and_type_index];
-            const nameAndTypeName = constant_pool[nameAndTypeInfo.name_index];
+            const nameAndTypeInfo = pool[info.name_and_type_index];
+            const nameAndTypeName = pool[nameAndTypeInfo.name_index];
             const name = bytes2String(nameAndTypeName.bytes);
 
             return {
@@ -133,4 +141,30 @@ export function readData(constant_pool: any[], index: number) {
             };
         }
     }
+}
+
+/**
+ * get annotation
+ * @param constant_pool ConstantPoolInfo[]
+ * @param annotations Annotation[]
+ */
+export function getAnnotations(constant_pool: ConstantPoolInfo[], annotations: Annotation[]) {
+    const annotationsResult = {};
+    annotations.forEach(({ type_index, element_value_pairs }: Annotation) => {
+        const annotationAttr = {};
+        const attributeName = readData(constant_pool, type_index);
+
+        if (element_value_pairs !== undefined) {
+            element_value_pairs.forEach(({ element_name_index, element_value }: any) => {
+                const name = readData(constant_pool, element_name_index);
+                const attributeValue = readData(constant_pool, element_value.value.const_value_index);
+                if (attributeValue === undefined) return;
+                annotationAttr[name.name] = attributeValue.name;
+            });
+        }
+
+        annotationsResult[attributeName.name] = annotationAttr;
+    });
+
+    return annotationsResult;
 }

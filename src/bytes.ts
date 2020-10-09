@@ -89,7 +89,7 @@ export function readBigInt64BE(bytes: number[], offset = 0) {
  * bytes to string
  * @param bytes Buffer
  */
-export function bytes2String(bytes: Buffer) {
+export function bytes2String(bytes: Buffer | number[]) {
     if (bytes instanceof Array) {
         const strArr = [];
         for (let i = 0; i < bytes.length; i++) {
