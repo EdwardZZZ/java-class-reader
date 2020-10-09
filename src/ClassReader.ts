@@ -1,5 +1,5 @@
 import {
-    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo, StackMapFrame,
+    JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo, StackMapFrame, Instruction,
 } from 'java-class-tools';
 
 import { readData, getAnnotations } from './ConstantPool';
@@ -161,21 +161,35 @@ export default class ClassReader {
                 attributes,
             }: any = method;
 
-            const methodName = readData(constant_pool, name_index).name;
+            const methodName: string = readData(constant_pool, name_index).name;
+            const paramTypes = readData(constant_pool, descriptor_index).name;
 
             if (isEnum && ~['values', 'valueOf'].indexOf(methodName)) return;
 
-            const methodInfo: any = {
+            const methodInfo: {
+                methodName: string,
+                paramTypes: any[],
+                ACC: string[],
+                codes?: Instruction[],
+                annotations?: any,
+                enum?: any[],
+                exception?: any[],
+                paramDetailTypes?: any[],
+                LineNumberTable?: any,
+                entries?: any,
+                LocalVariableTable?: {
+                    variable: { [key: string]: any },
+                    parameters: { [key: string]: string },
+                }
+            } = {
                 methodName,
+                paramTypes,
+                ACC: getACC(access_flags),
             };
-            const paramTypes = readData(constant_pool, descriptor_index).name;
-            methodInfo.paramTypes = paramTypes;
 
             if (methodName === '<clinit>') {
                 // staticConstructMethod = method;
             }
-
-            methodInfo.ACC = getACC(access_flags);
 
             if (!isEmpty(attributes)) {
                 for (const attribute of attributes) {
@@ -307,8 +321,13 @@ export default class ClassReader {
                                     const typeName = readData(constant_pool, descriptor_index).name;
                                     variable[variName] = typeName;
 
-                                    if (index > 0 && Object.keys(parameters).length < paramLen) {
-                                        parameters[variName] = typeName;
+                                    if (Object.keys(parameters).length < paramLen) {
+                                        if (methodInfo.ACC.indexOf('static') > -1) {
+                                            parameters[variName] = typeName;
+                                        } else if (index > 0) {
+                                            // index === 0  ==> this
+                                            parameters[variName] = typeName;
+                                        }
                                     }
                                 }
 

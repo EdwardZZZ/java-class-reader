@@ -38,7 +38,7 @@ export const ACC = {
 };
 export const ACCKeys = Object.keys(ACC).reverse();
 
-export function getACC(flag: number) {
+export function getACC(flag: number): string[] {
     if (ACC[flag]) return [ACC[flag]];
 
     for (let i = 0; i < ACCKeys.length; i++) {
