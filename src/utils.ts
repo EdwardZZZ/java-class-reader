@@ -21,8 +21,8 @@ export const mixinArr = (arr1: string[], arr2: string[]) => {
 
 /* eslint-disable no-use-before-define */
 /**
- * 格式化出入参
- * @param {*} str 参数
+ * 格式化出参或者入参
+ * @param {*} str 参数  eg: Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;III
  * retrun [in, out];
  */
 export function formatInOut(str: string) {
@@ -62,17 +62,35 @@ export function formatInOut(str: string) {
  * [Lcom..service.business.dto.ResultDto$ResultCode;
  * Ljava.lang.Enum<Lcom..service.business.dto.ResultDto$ResultCode;>;
  */
-// baseType
+/**
+ * baseType
+ * eg: [[B
+ */
 const baseReg = /^(\[*[BCDFIJSZ])$/;
-// package name
-const packageReg = /^([*L[\w/$<>;]+;)$/;
-// class name
+/**
+ * L name
+ * eg: Ljava/util/Map<Ljava/lang/String;Ljava/lang/String;>;
+ */
 const classReg = /^L([\w/$;]+);$/;
-// generic
+/**
+ * L class name, maybe array or generic
+ * eg: Ljava/util/Map<Ljava/lang/String;Ljava/lang/String;>;
+ */
+const LReg = /^([*L[\w/$<>;]+;)$/;
+/**
+ * type generic
+ * eg: Ljava/lang/Class<TT;>;
+ */
 const genericReg = /^L([\w/;]+)<(L?[\w/<>$;]+;)+>;$/;
-// input output
+/**
+ * input output
+ * eg: (JIILjava/util/List<Ljava/lang/Object;>;)Lcom/bj58/lbg/gsp/storage/vo/Out;
+ */
 const inoutReg = /^\(([[\w/<>;]+;?)?\)([[\w|/|<|>|;]+;?)$/;
-// generic  '<T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;)TT;'
+/**
+ * name generic
+ * eg: <T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;)TT;
+ */
 const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
 
 /**
@@ -128,9 +146,9 @@ export function parseName(name: string) {
         return replaceSlash(classResult[1]);
     }
 
-    const packageResult = name.match(packageReg);
-    if (packageResult) {
-        return parseType(packageResult[1]);
+    const LResult = name.match(LReg);
+    if (LResult) {
+        return parseType(LResult[1]);
     }
 
     const TResult = name.match(TReg);
