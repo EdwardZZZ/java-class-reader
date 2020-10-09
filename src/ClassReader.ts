@@ -61,7 +61,7 @@ export default class ClassReader {
 
         return {
             package: fullyQualifiedName.slice(0, fullyQualifiedName.lastIndexOf('.')),
-            dependClass,
+            dependClass: dependClass.sort(),
             fullyQualifiedName,
             superClass,
             interfaceName,
@@ -100,7 +100,7 @@ export default class ClassReader {
         return readData(constant_pool, super_class).name;
     }
 
-    getDependClass(): string[] {
+    private getDependClass(): string[] {
         const { constant_pool } = this.classFile;
         const { superClass, fullyQualifiedName } = this;
 
@@ -111,7 +111,8 @@ export default class ClassReader {
             if (classInfo.tag === 7) {
                 const { name } = readData(constant_pool, classInfo.name_index);
 
-                if (name !== fullyQualifiedName && !(/^java\.lang\.[a-zA-z]+$/.test(name)) && !(/^java\.util\.[a-zA-z]+$/.test(name))) {
+                if (name !== fullyQualifiedName && !dependClasses.includes(name)
+                    && !(/^java\.lang\.[a-zA-z]+$/.test(name)) && !(/^java\.util\.[a-zA-z]+$/.test(name))) {
                     if (superClass === 'java.lang.Enum' && name === `${fullyQualifiedName}[]`) return;
 
                     dependClasses.push(name);
