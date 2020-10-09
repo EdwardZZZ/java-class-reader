@@ -11,6 +11,23 @@ const reader = new JavaClassFileReader();
 
 type TStringKey = { [key: string]: any };
 
+type TMethodInfo = {
+    methodName: string,
+    paramTypes: any[],
+    ACC: string[],
+    codes?: Instruction[],
+    annotations?: any,
+    enum?: any[],
+    exception?: any[],
+    paramDetailTypes?: any[],
+    LineNumberTable?: any,
+    entries?: any,
+    LocalVariableTable?: {
+        variable: { [key: string]: any },
+        parameters: { [key: string]: string },
+    }
+};
+
 export default class ClassReader {
     constructor(data: Uint8Array | Buffer | number[] | string) {
         this.classFile = reader.read(data);
@@ -150,7 +167,7 @@ export default class ClassReader {
         } = this.classFile;
         const isEnum = this.superClass === 'java.lang.Enum';
 
-        const methodsInfo = [];
+        const methodsInfo: TMethodInfo[] = [];
         const readMap = new Map();
 
         methods.forEach((method) => {
@@ -166,22 +183,7 @@ export default class ClassReader {
 
             if (isEnum && ~['values', 'valueOf'].indexOf(methodName)) return;
 
-            const methodInfo: {
-                methodName: string,
-                paramTypes: any[],
-                ACC: string[],
-                codes?: Instruction[],
-                annotations?: any,
-                enum?: any[],
-                exception?: any[],
-                paramDetailTypes?: any[],
-                LineNumberTable?: any,
-                entries?: any,
-                LocalVariableTable?: {
-                    variable: { [key: string]: any },
-                    parameters: { [key: string]: string },
-                }
-            } = {
+            const methodInfo: TMethodInfo = {
                 methodName,
                 paramTypes,
                 ACC: getACC(access_flags),
