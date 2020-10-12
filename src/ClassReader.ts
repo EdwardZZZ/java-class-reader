@@ -74,6 +74,8 @@ export default class ClassReader {
     }
 
     getInterfaceName(): string[] {
+        if (this.dependClass) return this.dependClass;
+
         const {
             constant_pool,
             interfaces,
@@ -83,6 +85,8 @@ export default class ClassReader {
     }
 
     getFullyQualifiedName(): string {
+        if (this.fullyQualifiedName) return this.fullyQualifiedName;
+
         const {
             constant_pool,
             this_class,
@@ -92,6 +96,8 @@ export default class ClassReader {
     }
 
     getSuperClass(): string {
+        if (this.superClass) return this.superClass;
+
         const {
             constant_pool,
             super_class,
@@ -101,6 +107,8 @@ export default class ClassReader {
     }
 
     private getDependClass(): string[] {
+        if (this.dependClass) return this.dependClass;
+
         const { constant_pool } = this.classFile;
         const { superClass, fullyQualifiedName } = this;
 
@@ -124,6 +132,8 @@ export default class ClassReader {
     }
 
     getClassInfo() {
+        if (this.classInfo) return this.classInfo;
+
         const info: TStringKey = {};
 
         const {

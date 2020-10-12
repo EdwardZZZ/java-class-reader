@@ -21,7 +21,13 @@ type TConstantPoolInfo = ConstantPoolInfo & ClassInfo & FieldRefInfo & MethodRef
  * @param constant_pool <T extends ConstantPoolInfo>[]
  * @param index name index
  */
-export function readData(constant_pool: ConstantPoolInfo[], index: number) {
+export function readData(constant_pool: ConstantPoolInfo[], index: number): {
+    name?: any,
+    class?: string,
+    descriptor?: string,
+    referenceKind?: number,
+    referenceIndex?: number,
+} {
     if (isEmpty(constant_pool) || isEmpty(index)) return {};
 
     const pool = constant_pool as TConstantPoolInfo[];
