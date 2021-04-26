@@ -58,6 +58,7 @@ export function readData(constant_pool: ConstantPoolInfo[], index: number): {
             const value = pool[info.name_index | info.string_index];
             const valueChild = bytes2String(value.bytes);
             return {
+                // TODO name: valueChild,
                 name: parseName(valueChild),
             };
         }
