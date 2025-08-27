@@ -138,10 +138,12 @@ export function parseName(name: string) {
         return [inArr, outArr];
     }
 
-    // inner class TODO
+    // 处理内部类
     const classResult = name.match(classReg);
     if (classResult) {
-        return replaceSlash(classResult[1]);
+        const className = replaceSlash(classResult[1]);
+        // 处理内部类格式：Outer$Inner -> Outer.Inner
+        return className.replace(/\$/g, '.');
     }
 
     const LResult = name.match(LReg);

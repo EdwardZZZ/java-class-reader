@@ -290,32 +290,48 @@ export default class ClassReader {
                             const {
                                 attribute_name_index,
                                 local_variable_table,
-                                // line_number_table,
-                                // entries,
+                                line_number_table,
+                                entries,
                             } = attr;
 
                             const attrName = readData(constant_pool, attribute_name_index).name;
 
-                            // if (attrName === 'StackMapTable' && entries) {
-                            //     /* eslint-disable arrow-body-style */
-                            //     methodInfo.entries = entries.map((entry: StackMapFrame) => {
-                            //         /**
-                            //          * frame_type
-                            //          * 0-63 SameFrame
-                            //          * 64-127 SameLocalsOneStackItemFrame
-                            //          * 247 SameLocalsOneStackItemFrameExtended
-                            //          * 248-250 ChopFrame
-                            //          * 251 SameFrameExtended
-                            //          * 252-254 AppendFrame
-                            //          * 255 FullFrame
-                            //          */
-                            //         return entry;
-                            //     });
-                            // }
+                            if (attrName === 'StackMapTable' && entries) {
+                                methodInfo.entries = entries.map((entry: any) => {
+                                    /**
+                                     * frame_type
+                                     * 0-63 SameFrame
+                                     * 64-127 SameLocalsOneStackItemFrame
+                                     * 247 SameLocalsOneStackItemFrameExtended
+                                     * 248-250 ChopFrame
+                                     * 251 SameFrameExtended
+                                     * 252-254 AppendFrame
+                                     * 255 FullFrame
+                                     */
+                                    switch (true) {
+                                        case entry.frame_type >= 0 && entry.frame_type <= 63:
+                                            return { type: 'SameFrame', offset: entry.frame_type };
+                                        case entry.frame_type >= 64 && entry.frame_type <= 127:
+                                            return { type: 'SameLocalsOneStackItemFrame', offset: entry.frame_type - 64, stack: entry.stack };
+                                        case entry.frame_type === 247:
+                                            return { type: 'SameLocalsOneStackItemFrameExtended', offset: entry.offset_delta, stack: entry.stack };
+                                        case entry.frame_type >= 248 && entry.frame_type <= 250:
+                                            return { type: 'ChopFrame', offset: entry.offset_delta, chop_count: 251 - entry.frame_type };
+                                        case entry.frame_type === 251:
+                                            return { type: 'SameFrameExtended', offset: entry.offset_delta };
+                                        case entry.frame_type >= 252 && entry.frame_type <= 254:
+                                            return { type: 'AppendFrame', offset: entry.offset_delta, locals: entry.locals };
+                                        case entry.frame_type === 255:
+                                            return { type: 'FullFrame', offset: entry.offset_delta, locals: entry.locals, stack: entry.stack };
+                                        default:
+                                            return entry;
+                                    }
+                                });
+                            }
 
-                            // if (attrName === 'LineNumberTable' && line_number_table) {
-                            //     methodInfo.LineNumberTable = line_number_table;
-                            // }
+                            if (attrName === 'LineNumberTable' && line_number_table) {
+                                methodInfo.LineNumberTable = line_number_table;
+                            }
 
                             if (attrName === 'LocalVariableTable' && local_variable_table) {
                                 const variable = {};
