@@ -16,154 +16,146 @@ export const mixinArr = (arr1: string[], arr2: string[]) => {
     });
 };
 
-/* eslint-disable no-use-before-define */
 /**
- * 格式化出参或者入参
- * @param {*} str 参数  eg: Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;III
- * retrun [in, out];
+ * 从指定位置解析类型描述符
+ * @param str 类型描述符字符串
+ * @param start 起始位置
+ * @returns [解析后的类型, 解析的长度]
  */
-export function formatInOut(str: string) {
-    if (isEmpty(str) || str === 'V' || str === '') return null;
+function parseTypeAt(str: string, start: number): [string, number] {
+    const char = str[start];
 
-    let tempStr = str;
-    let tempStrArr = tempStr.split('');
-
-    let startIndex = 0;
-    let endIndex = 0;
-
-    const resultArr = [];
-    let endTempIndex = 0;
-    /* eslint-disable no-constant-condition */
-    while (true) {
-        endIndex = 1 + tempStrArr.findIndex((s, i) => (/[BCDFIJSZ;]/.test(s) && i >= endTempIndex));
-        const sliceStr = tempStr.substr(startIndex, endIndex);
-        if ((sliceStr.indexOf(';') > -1 && sliceStr.split('>').length === sliceStr.split('<').length)
-            || /^\[?[BCDFIJSZ]$/.test(sliceStr)) {
-            resultArr.push(parseType(sliceStr));
-            tempStr = tempStr.substr(endIndex);
-            tempStrArr = tempStrArr.slice(endIndex);
-            startIndex = 0;
-            endIndex = 0;
-            endTempIndex = 0;
-        } else {
-            endTempIndex = endIndex;
-        }
-
-        if (endIndex >= tempStrArr.length) break;
+    // 基本类型
+    if (BaseTypeKeys.includes(char)) {
+        return [BaseType[char], 1];
     }
 
-    return resultArr;
+    // 数组类型
+    if (char === '[') {
+        const [elementType, length] = parseTypeAt(str, start + 1);
+        return [`${elementType}[]`, length + 1];
+    }
+
+    // 引用类型 (修复泛型解析问题)
+    if (char === 'L') {
+        let end = start;
+        let bracketDepth = 0; // 跟踪泛型尖括号嵌套深度
+
+        // 查找匹配的结束分号，考虑泛型嵌套
+        while (end < str.length) {
+            if (str[end] === '<') bracketDepth++;
+            if (str[end] === '>') bracketDepth--;
+            if (str[end] === ';' && bracketDepth === 0) break;
+            end++;
+        }
+
+        if (end === str.length) {
+            throw new Error(`Invalid reference type descriptor: ${str.substring(start)}`);
+        }
+
+        const className = str.substring(start + 1, end);
+        const readableName = replaceSlash(className).replace(/\$/g, '.');
+        return [readableName, end - start + 1];
+    }
+
+    throw new Error(`Unknown type descriptor: ${char} at position ${start}`);
 }
 
 /**
- * [Lcom..service.business.dto.ResultDto$ResultCode;
- * Ljava.lang.Enum<Lcom..service.business.dto.ResultDto$ResultCode;>;
+ * 解析方法参数列表
+ * @param paramPart 参数部分字符串
+ * @returns 参数类型数组
  */
-/**
- * baseType
- * eg: [[B
- */
-const baseReg = /^(\[*[BCDFIJSZ])$/;
-/**
- * L name
- * eg: Ljava/util/Map<Ljava/lang/String;Ljava/lang/String;>;
- */
-const classReg = /^L([\w/$;]+);$/;
-/**
- * L class name, maybe array or generic
- * eg: Ljava/util/Map<Ljava/lang/String;Ljava/lang/String;>;
- */
-const LReg = /^([*L[\w/$<>;]+;)$/;
-/**
- * type generic
- * eg: Ljava/lang/Class<TT;>;
- */
-const genericReg = /^L([\w/;]+)<(L?[\w/<>$;]+;)+>;$/;
-/**
- * input output
- * eg: (JIILjava/util/List<Ljava/lang/Object;>;)Lcom/bj58/lbg/gsp/storage/vo/Out;
- */
-const inoutReg = /^\(([[\w/<>;]+;?)?\)([[\w|/|<|>|;]+;?)$/;
-/**
- * name generic
- * eg: <T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;)TT;
- */
-const TReg = /^<([\w:;/.]+)>\(([[\w/<>;.]+;?)?\)([[\w|/|<|>|;.]+;?)$/;
-
-// TODO https://github.com/EdwardZZZ/java-class-reader/issues/10
-/**
- * 处理类型 ，例如 'Ljava/util/Map<Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;Ljava/util/Map<Ljava/lang/String;Lcom/bj58/fangchan/fangfe/entity/SimpleEntity;>;'
- * @param {*} name 类型值
- */
-export function parseType(name: string) {
-    if (isEmpty(name) || !isString(name)) return name;
-    if (name === 'TT;') return 'java.lang.Object';
-
-    if (BaseTypeKeys.indexOf(name) > -1) {
-        return BaseType[name];
+function parseMethodParameters(paramPart: string): string[] {
+    const params: string[] = [];
+    let i = 0;
+    while (i < paramPart.length) {
+        const [type, length] = parseTypeAt(paramPart, i);
+        params.push(type);
+        i += length;
     }
-
-    const classResult = name.match(classReg);
-    if (classResult) {
-        return replaceSlash(classResult[1]);
-    }
-
-    if (name.indexOf('[') === 0) {
-        return `${parseType(name.slice(1))}[]`;
-    }
-
-    const genericResult = name.match(genericReg);
-    if (genericResult) {
-        const [, type1, type2] = genericResult;
-        if (type1.slice(-3) === 'Map') {
-            const [key, value] = formatInOut(type2);
-            return `${replaceSlash(type1)}<${key},${value}>`;
-        }
-        return `${replaceSlash(type1)}<${parseType(type2)}>`;
-    }
+    return params;
 }
 
 /**
- * 处理 java 类型名称
- * @param {*} name 名称
+ * 解析类型描述符
+ * @param descriptor 类型描述符
+ * @returns 解析后的可读类型名称
  */
-export function parseName(name: string) {
-    if (isEmpty(name)) return name;
+function parseTypeDescriptor(descriptor: string): string {
+    // 特殊情况: void 类型
+    if (descriptor === 'V') return 'void';
 
-    const inoutResult = name.match(inoutReg);
-    if (inoutResult) {
-        const [, instr, outstr] = inoutResult;
-        const inArr = formatInOut(instr);
-        const outArr = formatInOut(outstr);
-        return [inArr, outArr];
+    // 处理基本类型
+    if (BaseTypeKeys.includes(descriptor)) {
+        return BaseType[descriptor];
     }
 
-    // 处理内部类
-    const classResult = name.match(classReg);
-    if (classResult) {
-        const className = replaceSlash(classResult[1]);
-        // 处理内部类格式：Outer$Inner -> Outer.Inner
-        return className.replace(/\$/g, '.');
+    // 处理数组类型
+    if (descriptor.startsWith('[')) {
+        const elementType = parseTypeDescriptor(descriptor.substring(1));
+        return `${elementType}[]`;
     }
 
-    const LResult = name.match(LReg);
-    if (LResult) {
-        return parseType(LResult[1]);
+    // 处理引用类型
+    if (descriptor.startsWith('L') && descriptor.endsWith(';')) {
+        const className = descriptor.substring(1, descriptor.length - 1);
+        // 处理内部类
+        return replaceSlash(className).replace(/\$/g, '.');
     }
 
-    const TResult = name.match(TReg);
-    if (TResult) {
-        const [, T, inStr, outStr] = TResult;
-        const inArr = formatInOut(inStr);
-        const [key, value] = T.split(':');
-        const outArr = formatInOut(outStr.replace(new RegExp(`${key}${key};`), value));
-        return [inArr, outArr];
+    // 处理泛型参数引用，如 TT;
+    if (descriptor.startsWith('T') && descriptor.endsWith(';')) {
+        return descriptor.substring(1, descriptor.length - 1);
     }
 
-    const baseResult = name.match(baseReg);
-    if (baseResult) {
-        return parseType(baseResult[1]);
-    }
+    return replaceSlash(descriptor);
+}
 
-    return replaceSlash(name);
+/**
+ * 解析泛型参数定义
+ * @param paramDef 泛型参数定义
+ * @returns 解析后的泛型参数
+ */
+function parseGenericParameter(paramDef: string): string {
+    // 例如 T:Ljava/lang/Object;
+    const parts = paramDef.split(':');
+    if (parts.length === 2) {
+        const [name, bound] = parts;
+        const boundType = parseTypeDescriptor(bound);
+        return `${name} extends ${boundType}`;
+    }
+    return paramDef;
+}
+
+/**
+ * 处理 java 类型名称，根据 Java 字节码规范解析类型描述符
+ * @param {*} name 类型描述符
+ * @returns 解析后的可读类型名称
+ */
+export function parseName(name: string): any {
+    try {
+        if (isEmpty(name)) return name;
+
+        // 处理方法签名: (参数类型列表)返回值类型
+        const methodSignatureMatch = name.match(/^\((.*)\)(.*)$/);
+        if (methodSignatureMatch) {
+            const [, paramPart, returnPart] = methodSignatureMatch;
+            const params = paramPart ? parseMethodParameters(paramPart) : [];
+            const returnType = parseTypeDescriptor(returnPart);
+            return [params, returnType];
+        }
+
+        // 处理泛型类型参数声明，如 <T:Ljava/lang/Object;>
+        const genericParamMatch = name.match(/^<([\w:;/.]+)>$/);
+        if (genericParamMatch) {
+            const [, paramDef] = genericParamMatch;
+            return parseGenericParameter(paramDef);
+        }
+
+        // 处理普通类型描述符
+        return parseTypeDescriptor(name);
+    } catch (e) {
+        return name;
+    }
 }

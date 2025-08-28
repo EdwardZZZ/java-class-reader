@@ -7,7 +7,6 @@
         "sourceMap": false,
         "rootDir":"./src",
         "outDir":"./dist",
-        "watch":false,
         "declaration": true,
         "alwaysStrict": true,
         "removeComments": true,

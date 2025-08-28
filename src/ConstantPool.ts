@@ -132,11 +132,11 @@ export function readData(constant_pool: ConstantPoolInfo[], index: number): {
                 name: parseName(name),
             };
         }
-        case CONSTANT_Module:
+        case CONSTANT_Module as ConstantType:
         {
             return {};
         }
-        case CONSTANT_Package:
+        case CONSTANT_Package as ConstantType:
         {
             return {};
         }
