@@ -4,7 +4,7 @@ import {
 } from 'java-class-tools';
 
 import { readData, getAnnotations } from './ConstantPool';
-import { isEmpty, mixinArr } from './utils';
+import { getParameterAnnotations, isEmpty, isValidType, mixinArr, parseStackMapTypes } from './utils';
 import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
 
@@ -20,6 +20,7 @@ type TMethodInfo = {
     annotations?: any,
     enum?: any[],
     exception?: any[],
+    parameterAnnotations?: any[],
     paramDetailTypes?: any[],
     LineNumberTable?: any,
     entries?: any,
@@ -52,6 +53,7 @@ export default class ClassReader {
     private classInfo: TStringKey;
 
     private enumInfos: TStringKey[] = null;
+    private staticConstructMethod: any = null; // 新增：声明静态初始化方法变量
 
     getAllInfo({ showCode }: any = {}) {
         const { superClass, dependClass, interfaceName, fullyQualifiedName, classInfo } = this;
@@ -202,7 +204,7 @@ export default class ClassReader {
             };
 
             if (methodName === 'clinit') {
-                // staticConstructMethod = method;
+                this.staticConstructMethod = method; // 实现：存储静态初始化方法
             }
 
             if (!isEmpty(attributes)) {
@@ -219,6 +221,8 @@ export default class ClassReader {
                         const annos = getAnnotations(constant_pool, annotations);
                         mixinArr(this.dependClass, Object.keys(annos));
                         methodInfo.annotations = annos;
+                        // 新增：解析参数注解
+                        methodInfo.parameterAnnotations = getParameterAnnotations(constant_pool, attribute.parameter_annotations);
                     }
 
                     if (attribute_name_index) {
@@ -226,8 +230,21 @@ export default class ClassReader {
 
                         if (attrName === 'Code' && code) {
                             const instructions = InstructionParser.fromBytecode(code);
-
                             if (showCode) methodInfo.codes = instructions;
+
+                            // 新增：解析异常处理器（try-catch块）
+                            if (code.exception_table) {
+                                (methodInfo as any).exceptionHandlers = code.exception_table.map(handler => ({
+                                    startPc: handler.start_pc,
+                                    endPc: handler.end_pc,
+                                    handlerPc: handler.handler_pc,
+                                    catchType: handler.catch_type !== 0
+                                        ? readData(constant_pool, handler.catch_type).name
+                                        : 'java/lang/Throwable',
+                                    // 新增：验证异常类型有效性
+                                    isValid: handler.catch_type === 0 || isValidType(readData(constant_pool, handler.catch_type).name)
+                                }));
+                            }
 
                             // TODO 此处仅解析 Enum，其它方法及代码待解析
                             if (methodName === 'clinit' && isEnum) {
@@ -293,6 +310,14 @@ export default class ClassReader {
                                 /* eslint-disable @typescript-eslint/no-unused-vars */
                                 methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
                                 this.enumInfos = enumVal;
+                            } else {
+                                // 新增：处理非Enum方法的指令解析
+                                // methodInfo.instructionDetails = instructions.map(instr => ({
+                                //     opcode: instr.opcode,
+                                //     mnemonic: InstructionMap.get(instr.opcode),
+                                //     operands: parseOperands(instr),
+                                //     offset: instr.offset
+                                // }));
                             }
                         }
 
@@ -343,7 +368,12 @@ export default class ClassReader {
                                         case entry.frame_type >= 252 && entry.frame_type <= 254:
                                             return { type: 'AppendFrame', offset: entry.offset_delta, locals: entry.locals };
                                         case entry.frame_type === 255:
-                                            return { type: 'FullFrame', offset: entry.offset_delta, locals: entry.locals, stack: entry.stack };
+                                            return {
+                                                type: 'FullFrame',
+                                                offset: entry.offset_delta,
+                                                locals: parseStackMapTypes(entry.locals, constant_pool), // 新增类型解析
+                                                stack: parseStackMapTypes(entry.stack, constant_pool)  // 新增类型解析
+                                            };
                                         default:
                                             return entry;
                                     }

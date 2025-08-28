@@ -1,4 +1,5 @@
 import { BaseTypeKeys, BaseType } from './Const';
+import { readData } from './ConstantPool';
 
 export const type = (obj: any): string => Object.prototype.toString.call(obj).slice(8, -1);
 
@@ -158,4 +159,92 @@ export function parseName(name: string): any {
     } catch (e) {
         return name;
     }
+}
+
+/**
+ * 解析方法参数注解
+ * @param constant_pool 常量池
+ * @param parameter_annotations 参数注解数据
+ * @returns 解析后的参数注解数组，每个元素对应一个参数的注解集合
+ */
+export function getParameterAnnotations(constant_pool: any[], parameter_annotations: any[]): any[] {
+    if (!parameter_annotations || parameter_annotations.length === 0) return [];
+
+    return parameter_annotations.map((paramAnnos: any) => {
+        const annotations: any = {};
+        paramAnnos.forEach((anno: any) => {
+            const typeName = readData(constant_pool, anno.type_index).name;
+            const annoInfo: any = {};
+
+            if (anno.element_value_pairs) {
+                anno.element_value_pairs.forEach((pair: any) => {
+                    const elemName = readData(constant_pool, pair.element_name_index).name;
+                    const elemValue = pair.value;
+                    annoInfo[elemName] = elemValue.value;
+                });
+            }
+
+            annotations[replaceSlash(typeName)] = annoInfo;
+        });
+        return annotations;
+    });
+}
+
+/**
+ * 验证类型描述符是否有效
+ * @param typeName 类型名称
+ * @returns 类型是否有效的布尔值
+ */
+export function isValidType(typeName: string): boolean {
+    if (!typeName) return false;
+
+    // 基本类型验证
+    const baseTypes = ['void', 'boolean', 'byte', 'char', 'short', 'int', 'long', 'float', 'double'];
+    if (baseTypes.includes(typeName)) return true;
+
+    // 数组类型验证 (以[]结尾且元素类型有效)
+    if (typeName.endsWith('[]')) {
+        return isValidType(typeName.slice(0, -2));
+    }
+
+    // 引用类型验证 (包含包名且符合Java类名规范)
+    return /^[a-zA-Z_$][\w$]*(\.[a-zA-Z_$][\w$]*)*$/.test(typeName);
+}
+
+/**
+ * 解析栈映射表中的类型信息
+ * @param types 栈映射类型数组
+ * @param constant_pool 常量池
+ * @returns 解析后的可读类型数组
+ */
+export function parseStackMapTypes(types: any[], constant_pool: any[]): string[] {
+    if (!types || types.length === 0) return [];
+
+    const typeMap: Record<number, string> = {
+        0: 'top',          // 0: 未使用的变量槽
+        1: 'int',          // 1: int类型
+        2: 'float',        // 2: float类型
+        3: 'double',       // 3: double类型
+        4: 'long',         // 4: long类型
+        5: 'null',         // 5: null类型
+        6: 'uninitialized_this' // 6: 未初始化的this
+    };
+
+    return types.map((typeInfo: any) => {
+        if (typeof typeInfo === 'number') {
+            return typeMap[typeInfo] || `unknown_${typeInfo}`;
+        }
+
+        // 引用类型 (CONSTANT_Class_info索引)
+        if (typeInfo.class_info_index) {
+            return replaceSlash(readData(constant_pool, typeInfo.class_info_index).name);
+        }
+
+        // 未初始化的对象引用
+        if (typeInfo.offset) {
+            return `uninitialized@${typeInfo.offset}`;
+        }
+
+        return 'unknown_type';
+    });
 }
