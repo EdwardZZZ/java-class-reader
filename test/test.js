@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { ClassReader } = require('../dist/index');
+const { ClassReader } = require('../src/index');
 const buff = require('./class');
 
 const testDir = path.resolve('./test');

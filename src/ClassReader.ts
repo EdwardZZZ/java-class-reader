@@ -201,7 +201,7 @@ export default class ClassReader {
                 ACC: getACC(access_flags),
             };
 
-            if (methodName === '<clinit>') {
+            if (methodName === 'clinit') {
                 // staticConstructMethod = method;
             }
 
@@ -230,11 +230,16 @@ export default class ClassReader {
                             if (showCode) methodInfo.codes = instructions;
 
                             // TODO 此处仅解析 Enum，其它方法及代码待解析
-                            if (methodName === '<clinit>' && isEnum) {
+                            if (methodName === 'clinit' && isEnum) {
                                 let readIndex = 0;
                                 let reading = false;
                                 let tempVal: TStringKey = {};
                                 const enumVal = [];
+                                let stackDepth = 0; // 跟踪栈深度处理DUP指令
+
+                                // 初始化Enum属性映射（实际应根据<init>参数动态生成）
+                                // readMap.set(0, 'name');
+                                // readMap.set(1, 'ordinal');
 
                                 for (const instruction of instructions) {
                                     const { opcode, operands } = instruction;
@@ -244,23 +249,39 @@ export default class ClassReader {
                                         readIndex = 0;
                                         reading = true;
                                         tempVal = {};
+                                        stackDepth = 0;
                                     } else if (reading && opcode === Opcode.DUP) {
-                                        // TODO
+                                        stackDepth++;
                                     } else if (reading && opName.startsWith('iconst')) {
                                         const name = readMap.get(readIndex++);
+                                        if (!name) {
+                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
+                                            continue;
+                                        }
                                         const result = opName.replace('iconst_', '').replace('m', '-');
-                                        // enum order
                                         tempVal[name] = +result;
                                     } else if (reading && opcode === Opcode.LDC) {
                                         const name = readMap.get(readIndex++);
+                                        if (!name) {
+                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
+                                            continue;
+                                        }
                                         const result = readData(constant_pool, operands[0]).name;
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.SIPUSH) {
                                         const name = readMap.get(readIndex++);
+                                        if (!name) {
+                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
+                                            continue;
+                                        }
                                         const result = Operands.SIPUSH(instruction.operands);
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.BIPUSH) {
                                         const name = readMap.get(readIndex++);
+                                        if (!name) {
+                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
+                                            continue;
+                                        }
                                         const result = Operands.BIPUSH(instruction.operands);
                                         tempVal[name] = result;
                                     } else if (reading && opcode === Opcode.INVOKESPECIAL) {
@@ -361,7 +382,7 @@ export default class ClassReader {
                                     }
                                 }
 
-                                if (isEnum && methodName === '<init>') {
+                                if (isEnum && methodName === 'init') {
                                     const [inParam, outParam] = paramTypes;
                                     const [, , ...newInParam] = inParam;
                                     methodInfo.paramTypes = [newInParam, outParam];

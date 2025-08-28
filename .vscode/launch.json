@@ -5,10 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
+            "name": "ts-node: 当前文件",
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceFolder}/test/test.js"
-        }
+            "runtimeArgs": [
+                "--project",
+                "${workspaceFolder}/tsconfig.json",
+                "${file}"
+            ],
+            "runtimeExecutable": "ts-node",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "cwd": "${workspaceFolder}"
+        },
     ]
 }
