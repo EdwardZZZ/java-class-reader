@@ -2,6 +2,8 @@
  * Nodejs Buffer 预览是 Uint
  */
 
+import { ClassReaderError, ErrorType } from "./ErrorHandler";
+
 /**
  * int to bytes
  * @param n int val
@@ -50,7 +52,13 @@ export function readInt8BE(bytes: number[], offset = 0, unsigned = false) {
 export function readInt16BE(bytes: number[], offset = 0, unsigned = false) {
     const first = bytes[offset];
 
-    if (first === undefined || bytes[offset + 1] === undefined) throw new Error('OUT_OF_BOUNDS');
+    if (first === undefined || bytes[offset + 1] === undefined) {
+        throw new ClassReaderError(
+            'Buffer out of bounds when reading int16',
+            ErrorType.OUT_OF_BOUNDS,
+            { offset, bytesLength: bytes.length }
+        );
+    }
 
     return (unsigned ? (first << 8) : (uint2Byte(first) << 8)) + bytes[offset + 1];
 }

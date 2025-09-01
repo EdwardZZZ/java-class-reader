@@ -23,6 +23,7 @@ type TConstantPoolInfo = ConstantPoolInfo & ClassInfo & FieldRefInfo & MethodRef
  */
 export function readData(constant_pool: ConstantPoolInfo[], index: number): {
     name?: any,
+    value?: any,
     class?: string,
     descriptor?: string,
     referenceKind?: number,

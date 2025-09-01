@@ -1,16 +1,16 @@
 import {
     JavaClassFileReader, JavaClassFile, Opcode, InstructionParser, ClassInfo, FieldInfo, Instruction,
-    // StackMapFrame,
 } from 'java-class-tools';
 
 import { readData, getAnnotations } from './ConstantPool';
-import { getParameterAnnotations, isEmpty, isValidType, mixinArr, parseStackMapTypes } from './utils';
+import { getParameterAnnotations, isEmpty, isValidType, mixinArray, parseStackMapTypes } from './utils';
 import { getACC, InstructionMap } from './Const';
 import Operands from './Operands';
+import { MethodParser } from './MethodParser';
 
 const reader = new JavaClassFileReader();
 
-type TStringKey = { [key: string]: any };
+type TStringKey = Record<string, any>;
 
 type TMethodInfo = {
     methodName: string,
@@ -38,6 +38,7 @@ export default class ClassReader {
         this.dependClass = this.getDependClass();
         this.interfaceName = this.getInterfaceName();
         this.classInfo = this.getClassInfo();
+        this.enumInfos = []; // 初始化为空数组而不是null
     }
 
     private classFile: JavaClassFile;
@@ -52,15 +53,20 @@ export default class ClassReader {
 
     private classInfo: TStringKey;
 
-    private enumInfos: TStringKey[] = null;
-    private staticConstructMethod: any = null; // 新增：声明静态初始化方法变量
+    // 修改枚举信息存储类型声明
+    private enumInfos: TStringKey[] = []; // 从数组改为对象
+    private staticConstructMethod: any = null;
 
     getAllInfo({ showCode }: any = {}) {
         const { superClass, dependClass, interfaceName, fullyQualifiedName, classInfo } = this;
 
         const { fieldsInfo, enumFieldsInfo } = this.getFieldsInfo();
         const methodsInfo = this.getMethodsInfo({ showCode });
-        const { enumInfos } = this; // after getMethodsInfo
+        
+        // 如果是枚举类，解析枚举信息
+        if (superClass === 'java.lang.Enum') {
+            this.parseEnumInfos(enumFieldsInfo);
+        }
 
         return {
             package: fullyQualifiedName.slice(0, fullyQualifiedName.lastIndexOf('.')),
@@ -72,8 +78,130 @@ export default class ClassReader {
             methodsInfo,
             fieldsInfo,
             enumFieldsInfo,
-            enumInfos,
+            enumInfos: this.enumInfos, // 现在返回的是对象而非数组
         };
+    }
+
+    // 添加解析枚举信息的方法
+    private parseEnumInfos(enumFieldsInfo: TStringKey[]): void {
+        this.enumInfos = [];
+
+        if (this.staticConstructMethod?.codes) {
+            const enumValues = this.extractEnumValuesFromClinit();
+    
+            // 创建字段名到索引的映射
+            const fieldNameToIndex = new Map<string, number>();
+            enumFieldsInfo.forEach((fieldInfo, index) => {
+                fieldNameToIndex.set(fieldInfo.fieldName, index);
+            });
+
+            // 匹配枚举值到对应的字段并添加到数组
+            enumValues.forEach(enumValue => {
+                if (fieldNameToIndex.has(enumValue.name)) {
+                    const index = fieldNameToIndex.get(enumValue.name);
+                    const fieldInfo = enumFieldsInfo[index];
+    
+                    // 基础枚举信息
+                    const baseInfo = {
+                        EnumName: enumValue.name,
+                        EnumOrder: enumValue.ordinal
+                    };
+    
+                    // 动态字段映射（参数按顺序匹配自定义字段）
+                    const customFields = {};
+                    const customFieldNames = Object.keys(fieldInfo)
+                        .filter(key => !['fieldName', 'type'].includes(key));
+    
+                    // 将提取的参数按顺序分配给自定义字段
+                    customFieldNames.forEach((fieldName, paramIndex) => {
+                        customFields[fieldName] = enumValue.params[paramIndex] ?? fieldInfo[fieldName] ?? null;
+                    });
+    
+                    this.enumInfos.push({
+                        ...baseInfo,
+                        ...customFields
+                    });
+                }
+            });
+        }
+        
+        // 确保所有枚举字段都被处理
+        enumFieldsInfo.forEach((fieldInfo, index) => {
+            const enumName = fieldInfo.fieldName;
+            // 检查是否已添加
+            const exists = this.enumInfos.some(item => item.EnumName === enumName);
+            if (!exists) {
+                // 基础枚举信息
+                const baseInfo = {
+                    EnumName: enumName,
+                    EnumOrder: index
+                };
+    
+                // 从fieldInfo动态提取自定义字段
+                const customFields = {};
+                Object.keys(fieldInfo).forEach(key => {
+                    if (!['fieldName', 'type'].includes(key)) {
+                        customFields[key] = fieldInfo[key];
+                    }
+                });
+    
+                this.enumInfos.push({
+                    ...baseInfo,
+                    ...customFields
+                });
+            }
+        });
+    }
+
+    // 添加从静态初始化方法提取枚举值的方法
+    private extractEnumValuesFromClinit(): any[] {
+        const values: any[] = [];
+        const codes = this.staticConstructMethod.codes;
+        let currentEnumName: string | null = null;
+        let currentEnumParams: any[] = []; // 存储多个参数值
+        let expectingParams = false;
+        let paramCount = 0; // 跟踪参数数量
+    
+        for (let i = 0; i < codes.length; i++) {
+            const code = codes[i];
+    
+            // 查找字符串常量加载 (枚举名称)
+            if (code.name === 'ldc' && typeof code.operands?.value === 'string') {
+                currentEnumName = code.operands.value;
+                expectingParams = true;
+                currentEnumParams = []; // 重置参数数组
+                paramCount = 0;
+            }
+    
+            // 查找参数加载指令 (支持多种类型)
+            else if (expectingParams && [
+                'bipush', 'sipush', 'iconst_', 
+                'ldc', 'ldc_w', // 字符串参数
+                'fconst_', 'dconst_', // 浮点参数
+            ].some(cmd => code.name.startsWith(cmd))) {
+                // 收集参数值
+                currentEnumParams.push(code.operands?.value !== undefined ? code.operands.value : null);
+                paramCount++;
+            }
+    
+            // 查找构造函数调用 (结束参数收集)
+            else if (expectingParams && code.name === 'invokespecial') {
+                values.push({
+                    name: currentEnumName,
+                    params: currentEnumParams, // 存储所有参数
+                    ordinal: values.length
+                });
+                currentEnumName = null;
+                expectingParams = false;
+            }
+    
+            // 遇到其他指令重置状态
+            else if (expectingParams && !code.name.startsWith('iconst_') && !code.name.startsWith('ldc')) {
+                expectingParams = false;
+            }
+        }
+    
+        return values;
     }
 
     getInterfaceName(): string[] {
@@ -164,7 +292,7 @@ export default class ClassReader {
 
             if (!isEmpty(annotations)) {
                 const annos = getAnnotations(constant_pool, annotations);
-                mixinArr(this.dependClass, Object.keys(annos));
+                mixinArray(this.dependClass, Object.keys(annos));
                 info.annotations = annos;
             }
         });
@@ -172,275 +300,23 @@ export default class ClassReader {
         return info;
     }
 
-    getMethodsInfo({
-        showCode = false,
-    } = {}) {
-        const {
-            constant_pool,
-            methods,
-        } = this.classFile;
+    getMethodsInfo({ showCode }: any = {}) {
+        const { methods } = this.classFile;
         const isEnum = this.superClass === 'java.lang.Enum';
-
-        const methodsInfo: TMethodInfo[] = [];
-        const readMap = new Map();
-
+        const methodParser = new MethodParser(this.classFile, isEnum);
+        const methodsInfo: MethodInfo[] = [];
+    
         methods.forEach((method) => {
-            const {
-                access_flags,
-                name_index,
-                descriptor_index,
-                attributes,
-            }: any = method;
-
-            const methodName: string = readData(constant_pool, name_index).name;
-            const paramTypes = readData(constant_pool, descriptor_index).name;
-
-            if (isEnum && ~['values', 'valueOf'].indexOf(methodName)) return;
-
-            const methodInfo: TMethodInfo = {
-                methodName,
-                paramTypes,
-                ACC: getACC(access_flags),
-            };
-
-            if (methodName === 'clinit') {
-                this.staticConstructMethod = method; // 实现：存储静态初始化方法
-            }
-
-            if (!isEmpty(attributes)) {
-                for (const attribute of attributes) {
-                    const {
-                        code,
-                        annotations,
-                        signature_index,
-                        attribute_name_index,
-                        exception_index_table,
-                    } = attribute;
-
-                    if (!isEmpty(annotations)) {
-                        const annos = getAnnotations(constant_pool, annotations);
-                        mixinArr(this.dependClass, Object.keys(annos));
-                        methodInfo.annotations = annos;
-                        // 新增：解析参数注解
-                        methodInfo.parameterAnnotations = getParameterAnnotations(constant_pool, attribute.parameter_annotations);
-                    }
-
-                    if (attribute_name_index) {
-                        const attrName = readData(constant_pool, attribute_name_index).name;
-
-                        if (attrName === 'Code' && code) {
-                            const instructions = InstructionParser.fromBytecode(code);
-                            if (showCode) methodInfo.codes = instructions;
-
-                            // 新增：解析异常处理器（try-catch块）
-                            if (code.exception_table) {
-                                (methodInfo as any).exceptionHandlers = code.exception_table.map(handler => ({
-                                    startPc: handler.start_pc,
-                                    endPc: handler.end_pc,
-                                    handlerPc: handler.handler_pc,
-                                    catchType: handler.catch_type !== 0
-                                        ? readData(constant_pool, handler.catch_type).name
-                                        : 'java/lang/Throwable',
-                                    // 新增：验证异常类型有效性
-                                    isValid: handler.catch_type === 0 || isValidType(readData(constant_pool, handler.catch_type).name)
-                                }));
-                            }
-
-                            // TODO 此处仅解析 Enum，其它方法及代码待解析
-                            if (methodName === 'clinit' && isEnum) {
-                                let readIndex = 0;
-                                let reading = false;
-                                let tempVal: TStringKey = {};
-                                const enumVal = [];
-                                let stackDepth = 0; // 跟踪栈深度处理DUP指令
-
-                                // 初始化Enum属性映射（实际应根据<init>参数动态生成）
-                                // readMap.set(0, 'name');
-                                // readMap.set(1, 'ordinal');
-
-                                for (const instruction of instructions) {
-                                    const { opcode, operands } = instruction;
-                                    const opName: string = InstructionMap.get(opcode).toLowerCase();
-
-                                    if (opcode === Opcode.NEW) {
-                                        readIndex = 0;
-                                        reading = true;
-                                        tempVal = {};
-                                        stackDepth = 0;
-                                    } else if (reading && opcode === Opcode.DUP) {
-                                        stackDepth++;
-                                    } else if (reading && opName.startsWith('iconst')) {
-                                        const name = readMap.get(readIndex++);
-                                        if (!name) {
-                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
-                                            continue;
-                                        }
-                                        const result = opName.replace('iconst_', '').replace('m', '-');
-                                        tempVal[name] = +result;
-                                    } else if (reading && opcode === Opcode.LDC) {
-                                        const name = readMap.get(readIndex++);
-                                        if (!name) {
-                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
-                                            continue;
-                                        }
-                                        const result = readData(constant_pool, operands[0]).name;
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.SIPUSH) {
-                                        const name = readMap.get(readIndex++);
-                                        if (!name) {
-                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
-                                            continue;
-                                        }
-                                        const result = Operands.SIPUSH(instruction.operands);
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.BIPUSH) {
-                                        const name = readMap.get(readIndex++);
-                                        if (!name) {
-                                            console.warn(`Missing attribute name for index ${readIndex - 1}`);
-                                            continue;
-                                        }
-                                        const result = Operands.BIPUSH(instruction.operands);
-                                        tempVal[name] = result;
-                                    } else if (reading && opcode === Opcode.INVOKESPECIAL) {
-                                        enumVal.push(tempVal);
-                                        reading = false;
-                                    }
-                                }
-
-                                /* eslint-disable @typescript-eslint/no-unused-vars */
-                                methodInfo.enum = enumVal.map(({ EnumOrder, ...val }) => Object.values(val));
-                                this.enumInfos = enumVal;
-                            } else {
-                                // 新增：处理非Enum方法的指令解析
-                                // methodInfo.instructionDetails = instructions.map(instr => ({
-                                //     opcode: instr.opcode,
-                                //     mnemonic: InstructionMap.get(instr.opcode),
-                                //     operands: parseOperands(instr),
-                                //     offset: instr.offset
-                                // }));
-                            }
-                        }
-
-                        if (attrName === 'Exceptions' && exception_index_table) {
-                            methodInfo.exception = exception_index_table.map((expt: any) => readData(constant_pool, expt).name);
-                        }
-
-                        if (attrName === 'Signature' && signature_index) {
-                            const paramDetailTypes = readData(constant_pool, signature_index);
-                            methodInfo.paramDetailTypes = paramDetailTypes.name;
-                        }
-                    }
-
-                    if (!isEmpty(attribute.attributes)) {
-                        for (const attr of attribute.attributes) {
-                            const {
-                                attribute_name_index,
-                                local_variable_table,
-                                line_number_table,
-                                entries,
-                            } = attr;
-
-                            const attrName = readData(constant_pool, attribute_name_index).name;
-
-                            if (attrName === 'StackMapTable' && entries) {
-                                methodInfo.entries = entries.map((entry: any) => {
-                                    /**
-                                     * frame_type
-                                     * 0-63 SameFrame
-                                     * 64-127 SameLocalsOneStackItemFrame
-                                     * 247 SameLocalsOneStackItemFrameExtended
-                                     * 248-250 ChopFrame
-                                     * 251 SameFrameExtended
-                                     * 252-254 AppendFrame
-                                     * 255 FullFrame
-                                     */
-                                    switch (true) {
-                                        case entry.frame_type >= 0 && entry.frame_type <= 63:
-                                            return { type: 'SameFrame', offset: entry.frame_type };
-                                        case entry.frame_type >= 64 && entry.frame_type <= 127:
-                                            return { type: 'SameLocalsOneStackItemFrame', offset: entry.frame_type - 64, stack: entry.stack };
-                                        case entry.frame_type === 247:
-                                            return { type: 'SameLocalsOneStackItemFrameExtended', offset: entry.offset_delta, stack: entry.stack };
-                                        case entry.frame_type >= 248 && entry.frame_type <= 250:
-                                            return { type: 'ChopFrame', offset: entry.offset_delta, chop_count: 251 - entry.frame_type };
-                                        case entry.frame_type === 251:
-                                            return { type: 'SameFrameExtended', offset: entry.offset_delta };
-                                        case entry.frame_type >= 252 && entry.frame_type <= 254:
-                                            return { type: 'AppendFrame', offset: entry.offset_delta, locals: entry.locals };
-                                        case entry.frame_type === 255:
-                                            return {
-                                                type: 'FullFrame',
-                                                offset: entry.offset_delta,
-                                                locals: parseStackMapTypes(entry.locals, constant_pool), // 新增类型解析
-                                                stack: parseStackMapTypes(entry.stack, constant_pool)  // 新增类型解析
-                                            };
-                                        default:
-                                            return entry;
-                                    }
-                                });
-                            }
-
-                            if (attrName === 'LineNumberTable' && line_number_table) {
-                                methodInfo.LineNumberTable = line_number_table;
-                            }
-
-                            if (attrName === 'LocalVariableTable' && local_variable_table) {
-                                const variable = {};
-                                const parameters = {};
-
-                                local_variable_table.sort((l1: any, l2: any) => (l1.index - l2.index));
-                                const paramLen = (paramTypes[0] || []).length;
-
-                                for (const attrVar of local_variable_table) {
-                                    const {
-                                        index,
-                                        name_index,
-                                        descriptor_index,
-                                    } = attrVar;
-
-                                    const variName = readData(constant_pool, name_index).name;
-                                    const typeName = readData(constant_pool, descriptor_index).name;
-                                    variable[variName] = typeName;
-
-                                    if (Object.keys(parameters).length < paramLen) {
-                                        if (methodInfo.ACC.indexOf('static') > -1) {
-                                            parameters[variName] = typeName;
-                                        } else if (index > 0) {
-                                            // index === 0  ==> this
-                                            parameters[variName] = typeName;
-                                        }
-                                    }
-                                }
-
-                                if (isEnum && methodName === 'init') {
-                                    const [inParam, outParam] = paramTypes;
-                                    const [, , ...newInParam] = inParam;
-                                    methodInfo.paramTypes = [newInParam, outParam];
-
-                                    let readIndex = 0;
-                                    readMap.set(readIndex, 'EnumName');
-                                    readMap.set(++readIndex, 'EnumOrder');
-
-                                    for (const { index, name_index } of local_variable_table) {
-                                        if (index > 0 && readIndex - 2 <= paramLen) {
-                                            readMap.set(++readIndex, readData(constant_pool, name_index).name);
-                                        }
-                                    }
-                                }
-
-                                methodInfo.LocalVariableTable = {
-                                    variable,
-                                    parameters,
-                                };
-                            }
-                        }
-                    }
+            const methodInfo = methodParser.parseMethod(method);
+            if (methodInfo) {
+                methodsInfo.push(methodInfo);
+                // 保存静态初始化方法
+                if (methodInfo.methodName === 'clinit') {
+                    this.staticConstructMethod = methodInfo;
                 }
             }
-
-            methodsInfo.push(methodInfo);
         });
-
+    
         return methodsInfo;
     }
 
@@ -464,12 +340,15 @@ export default class ClassReader {
             const fieldName = readData(constant_pool, name_index).name;
             const type = readData(constant_pool, descriptor_index).name;
 
+            // 跳过枚举的$VALUES字段
             if (this.superClass === 'java.lang.Enum' && fieldName === '$VALUES') continue;
+            
             const fieldInfo: {
                 fieldName: string,
                 type: string,
                 ACC?: string[],
                 annotations?: TStringKey,
+                ConstantValue?: any
             } = {
                 fieldName,
                 type,
@@ -486,9 +365,11 @@ export default class ClassReader {
                 }: any = attr;
 
                 const attrName = readData(constant_pool, attribute_name_index);
-                const attrValue = readData(constant_pool, constantvalue_index);
-                if (attrValue.name) {
-                    fieldInfo[attrName.name] = attrValue.name;
+                
+                // 处理常量值
+                if (attrName.name === 'ConstantValue' && constantvalue_index) {
+                    const constantValue = readData(constant_pool, constantvalue_index);
+                    fieldInfo.ConstantValue = constantValue.value !== undefined ? constantValue.value : constantValue.name;
                 }
 
                 if (!isEmpty(signature_index)) {
@@ -498,12 +379,13 @@ export default class ClassReader {
 
                 if (!isEmpty(annotations)) {
                     const annos = getAnnotations(constant_pool, annotations);
-                    mixinArr(this.dependClass, Object.keys(annos));
+                    mixinArray(this.dependClass, Object.keys(annos));
                     fieldInfo.annotations = annos;
                 }
             }
 
-            if (fieldInfo.type === this.getFullyQualifiedName()) {
+            // 判断是否为枚举字段
+            if (this.superClass === 'java.lang.Enum' && fieldName !== 'serialVersionUID') {
                 enumFieldsInfo.push(fieldInfo);
             } else {
                 fieldsInfo.push(fieldInfo);
@@ -515,4 +397,35 @@ export default class ClassReader {
             enumFieldsInfo,
         };
     }
+}
+
+// 替换为具体接口定义
+interface ExceptionHandler {
+    startPc: number;
+    endPc: number;
+    handlerPc: number;
+    catchType: string;
+    isValid: boolean;
+}
+
+interface LocalVariableInfo {
+    variable: Record<string, string>;
+    parameters: Record<string, string>;
+}
+
+export interface MethodInfo {
+    methodName: string;
+    paramTypes: [string[], string];
+    ACC: string[];
+    isClinit?: boolean;
+    codes?: Instruction[];
+    annotations?: Record<string, Record<string, any>>;
+    enum?: any[];
+    exception?: string[];
+    parameterAnnotations?: any[];
+    paramDetailTypes?: string;
+    LineNumberTable?: any;
+    entries?: any;
+    LocalVariableTable?: LocalVariableInfo;
+    exceptionHandlers?: ExceptionHandler[];
 }

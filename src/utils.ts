@@ -9,7 +9,12 @@ export const isString = (obj: any): obj is string => type(obj) === 'String';
 
 export const replaceSlash = (str: string) => str.replace(/\//g, '.');
 
-export const mixinArr = (arr1: string[], arr2: string[]) => {
+/**
+ * 合并两个数组，避免重复元素
+ * @param arr1 目标数组
+ * @param arr2 源数组
+ */
+export const mixinArray = (arr1: string[], arr2: string[]) => {
     arr2.forEach((str) => {
         if (!arr1.includes(str)) {
             arr1.push(str);
