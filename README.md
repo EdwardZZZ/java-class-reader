@@ -3,45 +3,54 @@ Read and write java class files in node or browser base on java-class-tools
 
 [java-class-tools](https://github.com/leonardosnt/java-class-tools)
 
-### usage
-#### code
-```js
+### Usage
+
+#### Code
+
+```javascript
+const fs = require('fs');
+const path = require('path');
 const { ClassReader } = require('java-class-reader');
 
 const classPath = path.resolve(__dirname, './Foo.class');
+const buffer = fs.readFileSync(classPath);
 
-const result = new ClassReader(classPath).getAllInfo();
+// Create a new ClassReader with the binary data (Buffer, Uint8Array, or number[])
+const reader = new ClassReader(buffer);
+
+// Get the parsed ClassFile object
+const result = reader.getClassFile();
 
 console.log(JSON.stringify(result, null, 4));
 ```
-#### type
-```js
-export default class ClassReader {
-    constructor(data: Uint8Array | Buffer | number[] | string);
 
-    getAllInfo({ showCode }?: any): {
-        package: string;
-        dependClass: string[];
-        fullyQualifiedName: string;
-        superClass: string;
-        interfaceName: string[];
-        classInfo: TStringKey;
-        methodsInfo: any[];
-        fieldsInfo: any[];
-        enumFieldsInfo: any[];
-        enumInfos: TStringKey[];
-    };
-    getInterfaceName(): string[];
-    getFullyQualifiedName(): string;
-    getSuperClass(): string;
-    getDependClass(): string[];
-    getClassInfo(): TStringKey;
-    getMethodsInfo({ showCode, }?: {
-        showCode?: boolean;
-    }): any[];
-    getFieldsInfo(): {
-        fieldsInfo: any[];
-        enumFieldsInfo: any[];
-    };
+#### API
+
+```typescript
+export default class ClassReader {
+    /**
+     * Create a new ClassReader instance.
+     * @param data The binary data of the class file (Buffer, Uint8Array, or number[])
+     */
+    constructor(data: Uint8Array | number[] | Buffer);
+
+    /**
+     * Returns the complete parsed class file structure.
+     * This includes resolved constant pool entries, fields, methods, attributes, etc.
+     */
+    getClassFile(): ClassFile;
 }
+```
+
+#### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build project
+npm run build
 ```
