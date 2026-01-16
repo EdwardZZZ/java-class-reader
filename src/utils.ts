@@ -1,15 +1,15 @@
-import { BaseTypeKeys, BaseType, AccessFlags } from './types';
+import { BaseType, AccessFlags } from './types';
 import { readData } from './ConstantPoolParser';
 
 export const type = (obj: any): string => Object.prototype.toString.call(obj).slice(8, -1);
 
-export const isEmpty = ((undef) => (obj: any) => (obj === undef || obj === null))();
+export const isEmpty = (obj: any): boolean => obj === undefined || obj === null;
 
 export const isString = (obj: any): obj is string => type(obj) === 'String';
 
-export const replaceSlash = (str: string) => str.replace(/\//g, '.');
+export const replaceSlash = (str: string): string => str.replace(/\//g, '.');
 
-export const mixinArr = (arr1: string[], arr2: string[]) => {
+export const mixinArr = (arr1: string[], arr2: string[]): void => {
     arr2.forEach((str) => {
         if (!arr1.includes(str)) {
             arr1.push(str);
@@ -24,25 +24,25 @@ export const mixinArr = (arr1: string[], arr2: string[]) => {
  */
 export function parseAccessFlags(flags: number): string[] {
     const result: string[] = [];
-    if ((flags & AccessFlags.ACC_PUBLIC) !== 0) result.push('PUBLIC');
-    if ((flags & AccessFlags.ACC_PRIVATE) !== 0) result.push('PRIVATE');
-    if ((flags & AccessFlags.ACC_PROTECTED) !== 0) result.push('PROTECTED');
-    if ((flags & AccessFlags.ACC_STATIC) !== 0) result.push('STATIC');
-    if ((flags & AccessFlags.ACC_FINAL) !== 0) result.push('FINAL');
-    if ((flags & AccessFlags.ACC_SUPER) !== 0) result.push('SUPER');
-    if ((flags & AccessFlags.ACC_SYNCHRONIZED) !== 0) result.push('SYNCHRONIZED');
-    if ((flags & AccessFlags.ACC_VOLATILE) !== 0) result.push('VOLATILE');
-    if ((flags & AccessFlags.ACC_BRIDGE) !== 0) result.push('BRIDGE');
-    if ((flags & AccessFlags.ACC_TRANSIENT) !== 0) result.push('TRANSIENT');
-    if ((flags & AccessFlags.ACC_VARARGS) !== 0) result.push('VARARGS');
-    if ((flags & AccessFlags.ACC_NATIVE) !== 0) result.push('NATIVE');
-    if ((flags & AccessFlags.ACC_INTERFACE) !== 0) result.push('INTERFACE');
-    if ((flags & AccessFlags.ACC_ABSTRACT) !== 0) result.push('ABSTRACT');
-    if ((flags & AccessFlags.ACC_STRICT) !== 0) result.push('STRICT');
-    if ((flags & AccessFlags.ACC_SYNTHETIC) !== 0) result.push('SYNTHETIC');
-    if ((flags & AccessFlags.ACC_ANNOTATION) !== 0) result.push('ANNOTATION');
-    if ((flags & AccessFlags.ACC_ENUM) !== 0) result.push('ENUM');
-    if ((flags & AccessFlags.ACC_MODULE) !== 0) result.push('MODULE');
+    if (flags & AccessFlags.ACC_PUBLIC) result.push('PUBLIC');
+    if (flags & AccessFlags.ACC_PRIVATE) result.push('PRIVATE');
+    if (flags & AccessFlags.ACC_PROTECTED) result.push('PROTECTED');
+    if (flags & AccessFlags.ACC_STATIC) result.push('STATIC');
+    if (flags & AccessFlags.ACC_FINAL) result.push('FINAL');
+    if (flags & AccessFlags.ACC_SUPER) result.push('SUPER');
+    if (flags & AccessFlags.ACC_SYNCHRONIZED) result.push('SYNCHRONIZED');
+    if (flags & AccessFlags.ACC_VOLATILE) result.push('VOLATILE');
+    if (flags & AccessFlags.ACC_BRIDGE) result.push('BRIDGE');
+    if (flags & AccessFlags.ACC_TRANSIENT) result.push('TRANSIENT');
+    if (flags & AccessFlags.ACC_VARARGS) result.push('VARARGS');
+    if (flags & AccessFlags.ACC_NATIVE) result.push('NATIVE');
+    if (flags & AccessFlags.ACC_INTERFACE) result.push('INTERFACE');
+    if (flags & AccessFlags.ACC_ABSTRACT) result.push('ABSTRACT');
+    if (flags & AccessFlags.ACC_STRICT) result.push('STRICT');
+    if (flags & AccessFlags.ACC_SYNTHETIC) result.push('SYNTHETIC');
+    if (flags & AccessFlags.ACC_ANNOTATION) result.push('ANNOTATION');
+    if (flags & AccessFlags.ACC_ENUM) result.push('ENUM');
+    if (flags & AccessFlags.ACC_MODULE) result.push('MODULE');
     return result;
 }
 
@@ -56,7 +56,7 @@ function parseTypeAt(str: string, start: number): [string, number] {
     const char = str[start];
 
     // 基本类型
-    if (BaseTypeKeys.includes(char)) {
+    if (BaseType[char]) {
         return [BaseType[char], 1];
     }
 
@@ -117,7 +117,7 @@ function parseTypeDescriptor(descriptor: string): string {
     if (descriptor === 'V') return 'void';
 
     // 处理基本类型
-    if (BaseTypeKeys.includes(descriptor)) {
+    if (BaseType[descriptor]) {
         return BaseType[descriptor];
     }
 
