@@ -1,4 +1,3 @@
-
 import { BufferReader } from './BufferReader';
 import { ClassFile, ConstantPoolInfo, FieldInfo, MethodInfo, AttributeInfo } from './types';
 import { parseConstantPool, readData } from './ConstantPoolParser';

@@ -1,4 +1,3 @@
-
 export interface ClassFile {
     magic: number;
     minor_version: number;

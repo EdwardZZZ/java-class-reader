@@ -1,5 +1,10 @@
 module.exports = {
     parser: '@typescript-eslint/parser',
+    env: {
+        jest: true,
+        node: true,
+        es6: true,
+    },
     plugins: [
         'typescript',
         '@typescript-eslint',
@@ -8,27 +13,27 @@ module.exports = {
     rules: {
         // allow debugger during development
         'linebreak-style': 0,
-        'indent': [2, 4, {
-            'SwitchCase': 1
+        indent: [2, 4, {
+            SwitchCase: 1,
         }],
         'max-len': [2, {
-            'code': 160,
-            'ignoreUrls': true,
-            'ignoreComments': true
+            code: 160,
+            ignoreUrls: true,
+            ignoreComments: true,
         }],
-        'radix': ['error', 'as-needed'],
+        radix: ['error', 'as-needed'],
         'object-shorthand': ['error', 'methods'],
         'no-unused-expressions': ['error', {
-            'allowShortCircuit': true,
+            allowShortCircuit: true,
         }],
         'class-methods-use-this': [0, {
-            'exceptMethods': ['writeObject', 'readObject', 'Serialize', 'Derialize'],
+            exceptMethods: ['writeObject', 'readObject', 'Serialize', 'Derialize'],
         }],
         'no-restricted-globals': [0, 'isNaN'],
         'no-restricted-syntax': 0,
         'no-bitwise': 0,
         'no-mixed-operators': 0,
-        "import/extensions": 0,
+        'import/extensions': 0,
         'import/no-unresolved': 0,
         'import/prefer-default-export': 0,
         'import/no-dynamic-require': 0,
@@ -45,6 +50,6 @@ module.exports = {
         'no-debugger': 0,
         'no-console': 0,
         'no-shadow': 0,
-        'camelcase': 0,
+        camelcase: 0,
     },
-}
+};
