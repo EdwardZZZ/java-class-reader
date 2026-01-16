@@ -1,5 +1,5 @@
-import { BaseTypeKeys, BaseType } from './Const';
-import { readData } from './ConstantPool';
+import { BaseTypeKeys, BaseType, AccessFlags } from './types';
+import { readData } from './ConstantPoolParser';
 
 export const type = (obj: any): string => Object.prototype.toString.call(obj).slice(8, -1);
 
@@ -16,6 +16,35 @@ export const mixinArr = (arr1: string[], arr2: string[]) => {
         }
     });
 };
+
+/**
+ * Parses access flags into a readable string array
+ * @param flags The access flags integer
+ * @returns Array of access flag names (e.g. ['PUBLIC', 'STATIC'])
+ */
+export function parseAccessFlags(flags: number): string[] {
+    const result: string[] = [];
+    if ((flags & AccessFlags.ACC_PUBLIC) !== 0) result.push('PUBLIC');
+    if ((flags & AccessFlags.ACC_PRIVATE) !== 0) result.push('PRIVATE');
+    if ((flags & AccessFlags.ACC_PROTECTED) !== 0) result.push('PROTECTED');
+    if ((flags & AccessFlags.ACC_STATIC) !== 0) result.push('STATIC');
+    if ((flags & AccessFlags.ACC_FINAL) !== 0) result.push('FINAL');
+    if ((flags & AccessFlags.ACC_SUPER) !== 0) result.push('SUPER');
+    if ((flags & AccessFlags.ACC_SYNCHRONIZED) !== 0) result.push('SYNCHRONIZED');
+    if ((flags & AccessFlags.ACC_VOLATILE) !== 0) result.push('VOLATILE');
+    if ((flags & AccessFlags.ACC_BRIDGE) !== 0) result.push('BRIDGE');
+    if ((flags & AccessFlags.ACC_TRANSIENT) !== 0) result.push('TRANSIENT');
+    if ((flags & AccessFlags.ACC_VARARGS) !== 0) result.push('VARARGS');
+    if ((flags & AccessFlags.ACC_NATIVE) !== 0) result.push('NATIVE');
+    if ((flags & AccessFlags.ACC_INTERFACE) !== 0) result.push('INTERFACE');
+    if ((flags & AccessFlags.ACC_ABSTRACT) !== 0) result.push('ABSTRACT');
+    if ((flags & AccessFlags.ACC_STRICT) !== 0) result.push('STRICT');
+    if ((flags & AccessFlags.ACC_SYNTHETIC) !== 0) result.push('SYNTHETIC');
+    if ((flags & AccessFlags.ACC_ANNOTATION) !== 0) result.push('ANNOTATION');
+    if ((flags & AccessFlags.ACC_ENUM) !== 0) result.push('ENUM');
+    if ((flags & AccessFlags.ACC_MODULE) !== 0) result.push('MODULE');
+    return result;
+}
 
 /**
  * 从指定位置解析类型描述符
@@ -221,13 +250,13 @@ export function parseStackMapTypes(types: any[], constant_pool: any[]): string[]
     if (!types || types.length === 0) return [];
 
     const typeMap: Record<number, string> = {
-        0: 'top',          // 0: 未使用的变量槽
-        1: 'int',          // 1: int类型
-        2: 'float',        // 2: float类型
-        3: 'double',       // 3: double类型
-        4: 'long',         // 4: long类型
-        5: 'null',         // 5: null类型
-        6: 'uninitialized_this' // 6: 未初始化的this
+        0: 'top', // 0: 未使用的变量槽
+        1: 'int', // 1: int类型
+        2: 'float', // 2: float类型
+        3: 'double', // 3: double类型
+        4: 'long', // 4: long类型
+        5: 'null', // 5: null类型
+        6: 'uninitialized_this', // 6: 未初始化的this
     };
 
     return types.map((typeInfo: any) => {
