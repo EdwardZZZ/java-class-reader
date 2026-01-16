@@ -10,7 +10,8 @@
         "declaration": true,
         "alwaysStrict": true,
         "removeComments": true,
-        "preserveWatchOutput": true
+        "preserveWatchOutput": true,
+        "skipLibCheck": true
     },
     "include":[
         "./src/**/*"

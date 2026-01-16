@@ -1,10 +1,9 @@
-
 const fs = require('fs');
 const path = require('path');
 
 const { ClassReader } = require('../dist/index'); // Use built files or ts-node
 
-const testDir = path.resolve('./test');
+const testDir = path.resolve(__dirname, '../src/__test__/data');
 
 const files = fs.readdirSync(testDir);
 
