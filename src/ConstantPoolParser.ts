@@ -30,6 +30,9 @@ export function readData(constant_pool: ConstantPoolInfo[], index: number): any 
             return { name: info.value.toString() };
         case ConstantType.CLASS:
         case ConstantType.STRING:
+            if (info.name) return { name: info.name };
+            if (info.string_value) return { name: info.string_value };
+
             // eslint-disable-next-line no-case-declarations
             const val = constant_pool[info.name_index || info.string_index];
             if (val && val.value) {
@@ -39,6 +42,14 @@ export function readData(constant_pool: ConstantPoolInfo[], index: number): any 
         case ConstantType.FIELDREF:
         case ConstantType.METHODREF:
         case ConstantType.INTERFACE_METHODREF:
+            if (info.class_name && info.name && info.descriptor) {
+                return {
+                    class: info.class_name,
+                    name: info.name,
+                    descriptor: info.descriptor,
+                };
+            }
+
             // eslint-disable-next-line no-case-declarations
             const classInfo = constant_pool[info.class_index];
             // eslint-disable-next-line no-case-declarations
@@ -57,6 +68,13 @@ export function readData(constant_pool: ConstantPoolInfo[], index: number): any 
                 descriptor: parseName(typeInfo.value),
             };
         case ConstantType.NAME_AND_TYPE:
+            if (info.name && info.descriptor) {
+                return {
+                    name: info.name,
+                    descriptor: info.descriptor,
+                };
+            }
+
             // eslint-disable-next-line no-case-declarations
             const nInfo = constant_pool[info.name_index];
             // eslint-disable-next-line no-case-declarations

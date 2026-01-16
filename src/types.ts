@@ -1,3 +1,4 @@
+
 export interface ClassFile {
     magic: number;
     minor_version: number;
@@ -60,9 +61,11 @@ export interface AttributeInfo {
     attribute_name_index: number;
     name?: string; // Resolved
     attribute_length: number;
-    info: Uint8Array;
+    info?: Uint8Array;
     // Parsed attribute data will be added here
     parsed?: any;
+    // Allow dynamic properties for flattened attributes
+    [key: string]: any;
 }
 
 export interface InnerClassInfo {

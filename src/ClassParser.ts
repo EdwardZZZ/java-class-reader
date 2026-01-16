@@ -1,3 +1,4 @@
+
 import { BufferReader } from './BufferReader';
 import { ClassFile, ConstantPoolInfo, FieldInfo, MethodInfo, AttributeInfo } from './types';
 import { parseConstantPool, readData } from './ConstantPoolParser';
@@ -43,6 +44,12 @@ export class ClassParser {
 
         const attributes_count = this.reader.readU2();
         const attributes = this.parseAttributes(attributes_count, this.reader);
+
+        // Debug log to check why this_class_name might be undefined
+        // console.log('DEBUG: this_class index:', this_class);
+        // console.log('DEBUG: super_class index:', super_class);
+        // console.log('DEBUG: constantPool[this_class]:', this.constantPool[this_class]);
+        // console.log('DEBUG: readData result:', readData(this.constantPool, this_class));
 
         return {
             magic,
