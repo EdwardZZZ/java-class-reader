@@ -19,6 +19,13 @@ export interface ClassFile {
     methods: MethodInfo[];
     attributes_count: number;
     attributes: AttributeInfo[];
+    enum_values?: EnumValue[];
+}
+
+export interface EnumValue {
+    name: string;
+    ordinal?: number;
+    params: { [key: string]: any };
 }
 
 export interface ConstantPoolInfo {
@@ -54,6 +61,7 @@ export interface MethodInfo {
     descriptor?: string; // Resolved
     attributes_count: number;
     attributes: AttributeInfo[];
+    parameters?: Array<{ name?: string; type: string }>; // Parsed method parameters with name and type
 }
 
 export interface AttributeInfo {

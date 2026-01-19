@@ -38,7 +38,7 @@ export default class ClassReader {
      * Returns the complete parsed class file structure.
      * This includes resolved constant pool entries, fields, methods, attributes, etc.
      */
-    getClassFile(): ClassFile;
+    getClassFile(): Omit<ClassFile, 'constant_pool' | 'constant_pool_count'>;
 }
 ```
 

@@ -1,7 +1,8 @@
 import { BufferReader } from './BufferReader';
-import { ClassFile, ConstantPoolInfo, FieldInfo, MethodInfo, AttributeInfo } from './types';
+import { ClassFile, ConstantPoolInfo, FieldInfo, MethodInfo, AttributeInfo, AccessFlags, EnumValue } from './types';
 import { parseConstantPool, readData } from './ConstantPoolParser';
 import { InstructionParser } from './InstructionParser';
+import { Opcode } from './Opcodes';
 import { parseAccessFlags } from './utils';
 
 export class ClassParser {
@@ -44,11 +45,10 @@ export class ClassParser {
         const attributes_count = this.reader.readU2();
         const attributes = this.parseAttributes(attributes_count, this.reader);
 
-        // Debug log to check why this_class_name might be undefined
-        // console.log('DEBUG: this_class index:', this_class);
-        // console.log('DEBUG: super_class index:', super_class);
-        // console.log('DEBUG: constantPool[this_class]:', this.constantPool[this_class]);
-        // console.log('DEBUG: readData result:', readData(this.constantPool, this_class));
+        let enum_values: EnumValue[] | undefined;
+        if ((access_flags & AccessFlags.ACC_ENUM) !== 0) {
+            enum_values = this.parseEnumValues(methods);
+        }
 
         return {
             magic,
@@ -71,7 +71,130 @@ export class ClassParser {
             methods,
             attributes_count,
             attributes,
+            enum_values,
         };
+    }
+
+    private parseEnumValues(methods: MethodInfo[]): EnumValue[] {
+        const clinit = methods.find((m) => m.name === '<clinit>');
+        if (!clinit || !clinit.attributes) return [];
+
+        const codeAttr = clinit.attributes.find((attr) => attr.name === 'Code');
+        if (!codeAttr || !codeAttr.instructions) return [];
+
+        const { instructions } = codeAttr;
+        const stack: any[] = [];
+        const enumValues: EnumValue[] = [];
+        const initMethod = methods.find((m) => m.name === '<init>');
+        let paramNames: string[] = [];
+
+        if (initMethod && initMethod.parameters) {
+            paramNames = initMethod.parameters.map((p) => p.name || 'arg');
+        }
+
+        // We only care about parameters after name(String) and ordinal(int)
+        // Usually Enum constructor is (String, int, ...others)
+        const userParamStartIndex = 2;
+
+        for (const instr of instructions) {
+            switch (instr.opcode) {
+                case Opcode.NEW:
+                    stack.push({ type: 'new_object', className: instr.operandsResolved?.[0]?.name });
+                    break;
+                case Opcode.DUP:
+                    if (stack.length > 0) {
+                        stack.push(stack[stack.length - 1]);
+                    }
+                    break;
+                case Opcode.LDC:
+                case Opcode.LDC_W:
+                case Opcode.LDC2_W:
+                    // Push constant value
+                    if (instr.operandsResolved && instr.operandsResolved.length > 0) {
+                        const val = instr.operandsResolved[0];
+                        // Unpack if it's an object with value property (ConstantPool item)
+                        stack.push(val.value !== undefined ? val.value : val);
+                    } else {
+                        stack.push(null);
+                    }
+                    break;
+                case Opcode.ICONST_0: stack.push(0); break;
+                case Opcode.ICONST_1: stack.push(1); break;
+                case Opcode.ICONST_2: stack.push(2); break;
+                case Opcode.ICONST_3: stack.push(3); break;
+                case Opcode.ICONST_4: stack.push(4); break;
+                case Opcode.ICONST_5: stack.push(5); break;
+                case Opcode.ICONST_M1: stack.push(-1); break;
+                case Opcode.BIPUSH:
+                case Opcode.SIPUSH:
+                    stack.push(instr.operands[0]); // Simple number
+                    break;
+                case Opcode.INVOKESPECIAL: {
+                    // Check if it is the Enum constructor
+                    const methodRef = instr.operandsResolved?.[0];
+                    if (methodRef && methodRef.name === '<init>') {
+                        // Determine number of arguments based on descriptor
+                        // We can use our paramNames logic if we matched the right constructor
+                        // Or parse descriptor again.
+                        // For simplicity, let's assume it matches the initMethod found earlier if present
+                        // Or just pop based on what we have on stack
+
+                        // To be robust, we should parse descriptor to know how many args to pop
+                        // But we know we are looking for Enum init
+
+                        // We need to pop arguments + object ref
+                        // The arguments are on stack in order.
+
+                        // Let's assume we captured paramNames correctly from the class's <init>
+                        // The stack top are arguments in reverse order of popping (but pushed in order)
+                        // ... obj, name, ordinal, user_param1, user_param2 ...
+
+                        const args: any[] = [];
+                        const numParams = paramNames.length;
+
+                        for (let i = 0; i < numParams; i++) {
+                            args.unshift(stack.pop());
+                        }
+
+                        const objRef = stack.pop(); // The object being initialized
+
+                        // Extract name and ordinal
+                        const name = args[0];
+                        const ordinal = args[1];
+
+                        const params: { [key: string]: any } = {};
+                        for (let i = userParamStartIndex; i < numParams; i++) {
+                            const paramName = paramNames[i] || `arg${i}`;
+                            params[paramName] = args[i];
+                        }
+
+                        // Store temporarily on the object ref (which is shared with the one on stack due to DUP)
+                        if (objRef && typeof objRef === 'object') {
+                            objRef.enumData = { name, ordinal, params };
+                        }
+                    }
+                    break;
+                }
+                case Opcode.PUTSTATIC: {
+                    // Assign to static field
+                    const value = stack.pop();
+                    const fieldRef = instr.operandsResolved?.[0];
+                    if (fieldRef && value && value.enumData) {
+                        enumValues.push({
+                            name: fieldRef.name, // Should match value.enumData.name
+                            ordinal: value.enumData.ordinal,
+                            params: value.enumData.params,
+                        });
+                    }
+                    break;
+                }
+                default:
+                    // Ignore other instructions for now
+                    break;
+            }
+        }
+
+        return enumValues;
     }
 
     private parseFields(count: number): FieldInfo[] {
@@ -126,6 +249,59 @@ export class ClassParser {
             // Cleanup indices
             delete method.name_index;
             delete method.descriptor_index;
+
+            // Extract parameters from descriptor if parsed
+            let paramTypes: string[] = [];
+            if (Array.isArray(method.descriptor) && Array.isArray(method.descriptor[0])) {
+                [paramTypes] = method.descriptor;
+            }
+
+            const parameters: Array<{ name?: string; type: string }> = paramTypes.map((type) => ({ type }));
+
+            // 1. Try MethodParameters attribute
+            if (method.attributes) {
+                const methodParamsAttr = method.attributes.find((attr) => attr.name === 'MethodParameters');
+                if (methodParamsAttr && methodParamsAttr.parameters) {
+                    methodParamsAttr.parameters.forEach((p: any, i: number) => {
+                        if (i < parameters.length && p.name) {
+                            parameters[i].name = p.name;
+                        }
+                    });
+                }
+
+                // 2. Try LocalVariableTable attribute (inside Code attribute)
+                const codeAttr = method.attributes.find((attr) => attr.name === 'Code');
+                if (codeAttr && codeAttr.attributes) {
+                    const lvtAttr = codeAttr.attributes.find((attr: any) => attr.name === 'LocalVariableTable');
+                    if (lvtAttr && lvtAttr.local_variable_table) {
+                        const isStatic = (method.access_flags & 0x0008) !== 0;
+                        let currentLvtIndex = isStatic ? 0 : 1;
+
+                        parameters.forEach((param) => {
+                            if (!param.name) {
+                                // Find variable in LVT with start_pc === 0 and index === currentLvtIndex
+                                const lvtEntry = lvtAttr.local_variable_table.find(
+                                    (entry: any) => entry.start_pc === 0 && entry.index === currentLvtIndex,
+                                );
+                                if (lvtEntry) {
+                                    param.name = lvtEntry.name;
+                                }
+                            }
+
+                            // Advance index based on type size
+                            if (param.type === 'long' || param.type === 'double') {
+                                currentLvtIndex += 2;
+                            } else {
+                                currentLvtIndex += 1;
+                            }
+                        });
+                    }
+                }
+            }
+
+            if (parameters.length > 0) {
+                method.parameters = parameters;
+            }
 
             methods.push(method);
         }
@@ -201,7 +377,7 @@ export class ClassParser {
                 exception_table,
                 attributes_count,
                 attributes,
-                instructions: InstructionParser.fromBytecode(code),
+                instructions: InstructionParser.fromBytecode(code, this.constantPool),
             };
         } else if (name === 'LineNumberTable') {
             const line_number_table_length = reader.readU2();

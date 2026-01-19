@@ -112,7 +112,13 @@ function parseMethodParameters(paramPart: string): string[] {
  * @param descriptor 类型描述符
  * @returns 解析后的可读类型名称
  */
-function parseTypeDescriptor(descriptor: string): string {
+function parseTypeDescriptor(descriptor: string): string | [string[], string] {
+    // 检查是否是方法描述符
+    if (descriptor.startsWith('(')) {
+        // eslint-disable-next-line no-use-before-define
+        return parseMethodDescriptor(descriptor);
+    }
+
     // 特殊情况: void 类型
     if (descriptor === 'V') return 'void';
 
@@ -140,6 +146,25 @@ function parseTypeDescriptor(descriptor: string): string {
     }
 
     return replaceSlash(descriptor);
+}
+
+/**
+ * 解析方法描述符
+ * @param descriptor 方法描述符，例如 (I)V
+ * @returns [参数类型列表, 返回类型]
+ */
+function parseMethodDescriptor(descriptor: string): [string[], string] {
+    const params: string[] = [];
+    let i = 1; // 跳过 '('
+
+    while (descriptor[i] !== ')') {
+        const [paramType, length] = parseTypeAt(descriptor, i);
+        params.push(paramType);
+        i += length;
+    }
+
+    const returnType = parseTypeDescriptor(descriptor.substring(i + 1));
+    return [params, returnType as string];
 }
 
 /**
@@ -177,6 +202,11 @@ export function parseName(name: string): any {
         }
 
         // 处理泛型类型参数声明，如 <T:Ljava/lang/Object;>
+        // Special check for <clinit> and <init> to avoid being treated as generic params
+        if (name === '<clinit>' || name === '<init>') {
+            return name;
+        }
+
         const genericParamMatch = name.match(/^<([\w:;/.]+)>$/);
         if (genericParamMatch) {
             const [, paramDef] = genericParamMatch;
